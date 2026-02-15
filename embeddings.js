@@ -24,92 +24,8 @@ const index = new Index({
   token: upstashVectorToken,
 });
 
-// Resume data (same structure as data.js)
-const resumeData = {
-  personal: {
-    name: "Jacinto Gabriel A. Tong",
-    degree: "Bachelor of Science in Computer Science",
-    birthDate: "November 25, 2004",
-    birthplace: "Manila, Philippines",
-    gender: "Male",
-    citizenship: "Filipino",
-    religion: "Roman Catholic",
-    address: "Quezon City, Philippines",
-    email: "jacinto.tong@example.com"
-  },
-  education: {
-    degree: "Bachelor of Science in Computer Science",
-    school: "Polytechnic University of the Philippines",
-    years: "2022-2026",
-    capstone: "Digital Twin Resume Platform with AI Chatbot",
-    SHS: "De La Salle University – Dasmariñas (STEM)",
-    JHS: "De La Salle University – Dasmariñas"
-  },
-  certifications: [
-    "AWS Certified Cloud Practitioner",
-    "Google Cloud Associate Cloud Engineer",
-    "Microsoft Azure Fundamentals (AZ-900)",
-    "CompTIA Security+",
-    "CompTIA Network+",
-    "Cisco CCNA Routing and Switching",
-    "Oracle SQL Developer",
-    "MongoDB Associate Developer",
-    "Kubernetes Application Developer (CKAD)",
-    "Docker Certified Associate",
-    "HashiCorp Certified: Terraform Associate",
-    "Advanced JavaScript Developer",
-    "Full-Stack Web Development Bootcamp",
-    "Machine Learning with Python",
-    "Data Science Professional Certificate",
-    "AI for Business Professional Certificate",
-    "IBM Data Science Professional Certificate",
-    "Google Analytics Certification",
-    "Web Development Fundamentals",
-    "RESTful API Design",
-    "GraphQL Fundamentals",
-    "TypeScript Advanced",
-    "React Advanced Patterns",
-    "Vue.js Certification",
-    "Node.js Developer Certification",
-    "Python for Data Analysis",
-    "Agile and Scrum Master Certification",
-    "Project Management Professional (PMP)",
-    "Business Analysis Fundamentals",
-    "UX/UI Design Certification",
-    "Digital Marketing Specialist",
-    "Technical Writing Course"
-  ],
-  events: [
-    { title: "Tech Summit 2024", venue: "SMX Convention Center, Manila", date: "March 15, 2024" },
-    { title: "Python Workshop", venue: "Tech Hub Manila", date: "April 10, 2024" },
-    { title: "Cloud Architecture Conference", venue: "Makati Shangri-La, Manila", date: "May 20, 2024" },
-    { title: "Web Development Bootcamp", venue: "UPLIFT PH, Quezon City", date: "June 5, 2024" },
-    { title: "AI & Machine Learning Summit", venue: "BGC, Taguig", date: "July 12, 2024" },
-    { title: "DevOps Day Asia", venue: "SMX Convention Center, Manila", date: "August 18, 2024" },
-    { title: "React Advanced Workshop", venue: "Tech Hub Manila", date: "September 22, 2024" },
-    { title: "Kubernetes Training Seminar", venue: "UPLIFT PH, Quezon City", date: "October 8, 2024" },
-    { title: "Data Science Conference", venue: "Makati Shangri-La, Manila", date: "November 14, 2024" },
-    { title: "Full-Stack JavaScript Bootcamp", venue: "Tech Hub Manila", date: "December 3, 2024" },
-    { title: "TypeScript Advanced Certification Course", venue: "Online", date: "January 10, 2025" },
-    { title: "GraphQL for Modern Web Apps", venue: "BGC, Taguig", date: "February 7, 2025" },
-    { title: "Cloud Security Best Practices", venue: "SMX Convention Center, Manila", date: "March 14, 2025" },
-    { title: "AI Ethics and Responsible AI", venue: "PUP Campus, Quezon City", date: "April 9, 2025" },
-    { title: "DevSecOps Implementation Workshop", venue: "Tech Hub Manila", date: "May 16, 2025" },
-    { title: "Enterprise Architecture Summit", venue: "Makati Shangri-La, Manila", date: "June 20, 2025" },
-    { title: "Open Source Contribution Workshop", venue: "UPLIFT PH, Quezon City", date: "July 25, 2025" },
-    { title: "Microservices Design Patterns", venue: "BGC, Taguig", date: "August 29, 2025" },
-    { title: "API Security and Rate Limiting", venue: "Tech Hub Manila", date: "September 18, 2025" },
-    { title: "Vector Databases for AI", venue: "Online", date: "October 10, 2025" },
-    { title: "Production ML Systems Workshop", venue: "SMX Convention Center, Manila", date: "November 12, 2025" }
-  ],
-  affiliations: [
-    "IEEE Student Member - Computer Society",
-    "Google Developer Groups (GDG) Manila Co-Organizer",
-    "Python Philippines Community Contributor",
-    "Open Source Contributors PH Ambassador",
-    "Cloud Native Community (CNCF) Student Representative"
-  ]
-};
+// Import resume data from data.js to keep in sync
+const { resumeData } = require('./data.js');
 
 /**
  * Extract all text fields and create document chunks
@@ -191,7 +107,10 @@ async function upsertAllSections() {
       await index.upsert({
         id: section.id,
         data: section.data,
-        metadata: section.metadata
+        metadata: {
+          ...section.metadata,
+          text: section.data  // Store the actual text in metadata for retrieval
+        }
       });
       
       successCount++;

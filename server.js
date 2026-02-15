@@ -27,11 +27,47 @@ app.get('/', (req, res) => {
 function localAnswer(message){
   const resume = require('./data.js').resumeData;
   const s = message.toLowerCase();
-  if (/(birth|born|birthplace|birth date|birthday)/.test(s)) return `Birth Date: ${resume.personal.birthDate}; Birthplace: ${resume.personal.birthplace}`;
-  if (/(email|e-mail|contact)/.test(s)) return `Email: ${resume.personal.email}; Address: ${resume.personal.address}`;
-  if (/(degree|studying|education|capstone)/.test(s)) return `Degree: ${resume.education.degree} at ${resume.education.school} (${resume.education.years}). Capstone: ${resume.education.capstone}`;
-  if (/list certifications/.test(s)) return resume.certifications.join('\n');
-  if (/list events/.test(s)) return resume.events.map(e=>`${e.title} — ${e.date}`).join('\n');
+  if (/(birth|born|birthplace|birth date|birthday)/.test(s)) return `Jacinto was born on ${resume.personal.birthDate} in ${resume.personal.birthplace}! 🎂`;
+  if (/(email|e-mail|contact)/.test(s)) return `You can reach Jacinto at ${resume.personal.email}. He's also based in ${resume.personal.address}.`;
+  if (/(degree|studying|education|capstone)/.test(s)) return `Jacinto is pursuing a ${resume.education.degree} at ${resume.education.school} (${resume.education.years}). His capstone project is all about "${resume.education.capstone}" - pretty cool stuff! 🚀`;
+  if (/list certifications/.test(s)) return `Check out all of Jacinto's certifications:\n\n${resume.certifications.map((c, i) => `${i + 1}. ${c}`).join('\n')}`;
+  if (/list events/.test(s)) return `Jacinto has been to some amazing events and conferences:\n\n${resume.events.map(e=>`📍 ${e.title} — ${e.date}`).join('\n')}`;
+  return null;
+}
+
+/**
+ * Helper function to get text from ID (reconstruct from data.js)
+ */
+function getTextFromId(id) {
+  const resume = require('./data.js').resumeData;
+  const [category, key] = id.split('_');
+  
+  if (category === 'personal') {
+    const value = Object.entries(resume.personal).find(([k]) => k.toLowerCase() === key)?.[1];
+    if (value) return `Personal: ${key} - ${value}`;
+  }
+  if (category === 'education') {
+    const value = Object.entries(resume.education).find(([k]) => k.toLowerCase() === key)?.[1];
+    if (value) {
+      // Handle nested objects (shs, jhs)
+      if (typeof value === 'object') {
+        return `Education: ${key} - ${value.school || ''} (${value.years || ''})`;
+      }
+      return `Education: ${key} - ${value}`;
+    }
+  }
+  if (category === 'cert') {
+    const index = parseInt(key);
+    if (resume.certifications[index]) return `Certification: ${resume.certifications[index]}`;
+  }
+  if (category === 'event') {
+    const index = parseInt(key);
+    if (resume.events[index]) return `Event: ${resume.events[index].title} at ${resume.events[index].venue} on ${resume.events[index].date}`;
+  }
+  if (category === 'affiliation') {
+    const index = parseInt(key);
+    if (resume.affiliations[index]) return `Affiliation: ${resume.affiliations[index]}`;
+  }
   return null;
 }
 
@@ -57,10 +93,11 @@ app.post('/api/search', async (req, res) => {
       );
 
       upstashResults.forEach(result => {
+        const text = getTextFromId(result.id);
         results.push({
           id: result.id,
           score: result.score,
-          text: result.metadata?.data || 'Resume data',
+          text: text || 'Resume data',
           category: result.metadata?.category
         });
       });
@@ -148,7 +185,103 @@ app.post('/api/chat', async (req, res) => {
   const { message } = req.body || {};
   if (!message) return res.status(400).json({ error: 'missing message' });
 
-  // If OPENAI_API_KEY present, forward to OpenAI chat completion
+  let resumeContext = '';
+
+  // Search Upstash database for relevant resume information
+  if (upstashIndex) {
+    try {
+      const searchResults = await upstashIndex.query(
+        {
+          data: message,
+          topK: 10,
+          includeMetadata: true
+        }
+      );
+
+      if (searchResults && searchResults.length > 0) {
+        const contextItems = searchResults
+          .map(r => getTextFromId(r.id))
+          .filter(t => t)
+          .slice(0, 8);
+        
+        if (contextItems.length > 0) {
+          resumeContext = `\n\nRelevant resume information:\n${contextItems.map((item, i) => `• ${item}`).join('\n')}`;
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Upstash search error:', err.message);
+    }
+  }
+
+  const systemPrompt = `You are a friendly and knowledgeable personal AI assistant for Jacinto Gabriel A. Tong. 
+
+You know Jacinto well! He's an Information Technology student from St. Paul University Philippines with a passion for technology, innovation, and AI. He's actively involved in various tech communities and has participated in numerous events and hackathons. He's creative, driven, and continuously learning.
+
+When answering questions:
+- Speak as if you know Jacinto personally. Use a warm, friendly, and conversational tone
+- Be enthusiastic about his achievements and projects
+- Share details about his education, certifications, events, and affiliations with pride
+- Add personality and genuine warmth to your responses - make them feel conversational, not robotic
+- Use the provided resume context to give accurate, specific answers
+- If Jacinto's been to an event or earned a certificate, share it with enthusiasm!
+- If you don't have information, politely say "I don't have those details about Jacinto, but I'd be happy to help with what I do know!"
+- Keep responses friendly and engaging while being concise${resumeContext}`;
+
+  // Try Ollama first (local, no API key needed)
+  try {
+    const resp = await fetch('http://localhost:11434/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama3.2',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        stream: false
+      })
+    });
+    if (resp.ok) {
+      const j = await resp.json();
+      const reply = j?.message?.content || 'No response from Ollama';
+      return res.json({ reply });
+    }
+  } catch (err) {
+    console.warn('⚠️ Ollama not available:', err.message);
+  }
+
+  // Fallback: Try GROQ API with current model
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message }
+          ],
+          max_tokens: 500,
+          temperature: 0.7
+        })
+      });
+      const j = await resp.json();
+      if (j?.error) {
+        console.error('GROQ error:', j.error.message);
+      } else {
+        const reply = j?.choices?.[0]?.message?.content || JSON.stringify(j);
+        return res.json({ reply });
+      }
+    } catch (err) {
+      console.error('GROQ error:', err.message);
+    }
+  }
+
+  // Fallback: Try OPENAI_API_KEY if GROQ fails
   if (process.env.OPENAI_API_KEY) {
     try {
       const resp = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -159,7 +292,10 @@ app.post('/api/chat', async (req, res) => {
         },
         body: JSON.stringify({
           model: 'gpt-3.5-turbo',
-          messages: [{ role: 'system', content: 'You are a helpful assistant for resume questions.' }, { role: 'user', content: message }],
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message }
+          ],
           max_tokens: 500
         })
       });
@@ -167,7 +303,7 @@ app.post('/api/chat', async (req, res) => {
       const reply = j?.choices?.[0]?.message?.content || JSON.stringify(j);
       return res.json({ reply });
     } catch (err) {
-      console.error('OpenAI error', err);
+      console.error('OpenAI error', err.message);
     }
   }
 
@@ -175,7 +311,7 @@ app.post('/api/chat', async (req, res) => {
   const local = localAnswer(message);
   if (local) return res.json({ reply: local });
 
-  return res.json({ reply: "No AI key configured. Set OPENAI_API_KEY to enable real AI responses, or ask simple resume queries." });
+  return res.json({ reply: "Start Ollama (ollama serve) to enable local AI, or set OPENAI_API_KEY/GROQ_API_KEY for cloud APIs." });
 });
 
 app.listen(port, () => console.log(`Server listening at http://localhost:${port}`));
