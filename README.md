@@ -48,6 +48,3 @@ Security notes:
 - Do NOT commit API keys into the repository. Use the `.env` file or a secrets manager.
 - The provided backend will use `OPENAI_API_KEY` to call OpenAI. If not set, the server falls back to a local keyword responder.
 
-Using your GROQ key:
-- You shared a GROQ key; do NOT paste it into code. If you want me to wire Sanity/GROQ data, I can add an integration that reads `GROQ_API_KEY` from the environment and queries your dataset server-side. You must set that env var locally or on your hosting provider.
-
