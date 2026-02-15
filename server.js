@@ -47,35 +47,20 @@ app.post('/api/search', async (req, res) => {
   // If Upstash is configured, attempt semantic search
   if (upstashIndex) {
     try {
-      const { generateSparseVector } = require('./embeddings.js');
-      const sparseVector = generateSparseVector(query);
-      
-      // Convert dense array to sparse format {indices: [], values: []}
-      const indices = [];
-      const values = [];
-      sparseVector.forEach((val, idx) => {
-        if (val > 0) {
-          indices.push(idx);
-          values.push(val);
-        }
-      });
-
-      const queryVector = {
-        indices: indices.length > 0 ? indices : [0],
-        values: values.length > 0 ? values : [0.1]
-      };
-
-      // Query Upstash Vector with top 5 results
+      // Query Upstash Vector using the data string (Upstash handles embedding)
       const upstashResults = await upstashIndex.query(
-        queryVector,
-        { topK: 5, includeMetadata: true }
+        {
+          data: query,
+          topK: 5,
+          includeMetadata: true
+        }
       );
 
       upstashResults.forEach(result => {
         results.push({
           id: result.id,
           score: result.score,
-          text: result.metadata?.textPreview || result.metadata?.text || 'Resume data',
+          text: result.metadata?.data || 'Resume data',
           category: result.metadata?.category
         });
       });

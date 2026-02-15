@@ -2,9 +2,9 @@
  * Embeddings Pipeline for Digital Twin Resume
  * 
  * This script:
- * 1. Extracts text from resume data (data.js)
- * 2. Generates sparse vectors using BM25 tokenization
- * 3. Upserts vectors to Upstash Vector Database (sparse mode)
+ * 1. Extracts text from resume data into structured sections
+ * 2. Upserts sections to Upstash Vector Database (embedding handled by Upstash BM25 model)
+ * 3. Enables semantic search via /api/search endpoint
  */
 
 require('dotenv').config();
@@ -24,7 +24,7 @@ const index = new Index({
   token: upstashVectorToken,
 });
 
-// Import resume data (simplified inline version for this script)
+// Resume data (same structure as data.js)
 const resumeData = {
   personal: {
     name: "Jacinto Gabriel A. Tong",
@@ -122,7 +122,7 @@ function extractResumeSections() {
     if (value) {
       sections.push({
         id: `personal_${key}`,
-        text: `Personal: ${key.replace(/([A-Z])/g, ' $1').toLowerCase()} is ${value}`,
+        data: `Personal: ${key.replace(/([A-Z])/g, ' $1').toLowerCase()} is ${value}`,
         metadata: { category: 'personal', field: key }
       });
     }
@@ -133,7 +133,7 @@ function extractResumeSections() {
     if (value) {
       sections.push({
         id: `education_${key}`,
-        text: `Education: ${key.replace(/([A-Z])/g, ' $1').toLowerCase()} - ${value}`,
+        data: `Education: ${key.replace(/([A-Z])/g, ' $1').toLowerCase()} - ${value}`,
         metadata: { category: 'education', field: key }
       });
     }
@@ -143,7 +143,7 @@ function extractResumeSections() {
   resumeData.certifications.forEach((cert, index) => {
     sections.push({
       id: `cert_${index}`,
-      text: `Certification: ${cert}`,
+      data: `Certification: ${cert}`,
       metadata: { category: 'certifications', index }
     });
   });
@@ -152,7 +152,7 @@ function extractResumeSections() {
   resumeData.events.forEach((event, index) => {
     sections.push({
       id: `event_${index}`,
-      text: `Event: ${event.title} at ${event.venue} on ${event.date}`,
+      data: `Event: ${event.title} at ${event.venue} on ${event.date}`,
       metadata: { category: 'events', index }
     });
   });
@@ -161,7 +161,7 @@ function extractResumeSections() {
   resumeData.affiliations.forEach((affiliation, index) => {
     sections.push({
       id: `affiliation_${index}`,
-      text: `Affiliation: ${affiliation}`,
+      data: `Affiliation: ${affiliation}`,
       metadata: { category: 'affiliations', index }
     });
   });
@@ -170,54 +170,14 @@ function extractResumeSections() {
 }
 
 /**
- * Generate sparse vector using BM25-like tokenization
- * Sparse vectors contain mostly zeros with keyword indices
+ * Main function to upsert all sections using Upstash-native embedding
  */
-function generateSparseVector(text) {
-  // Simple tokenization: split by non-alphanumeric, lowercase, filter stopwords
-  const stopwords = new Set([
-    'the', 'a', 'an', 'and', 'or', 'is', 'at', 'in', 'on', 'with', 'of', 'for', 'to', 'from', 'by', 'as',
-    'be', 'been', 'are', 'was', 'were', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-    'could', 'should', 'may', 'might', 'must', 'can'
-  ]);
-
-  const tokens = text
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter(token => token.length > 2 && !stopwords.has(token));
-
-  // Create sparse vector with token hashes as indices
-  // Initialize a sparse vector with 1024 dimensions
-  const vector = new Array(1024).fill(0);
-  const vocab = {};
-
-  tokens.forEach(token => {
-    // Simple hash of token to index (0-1023 for sparse representation)
-    const hash = require('crypto')
-      .createHash('md5')
-      .update(token)
-      .digest('hex');
-    const index = parseInt(hash.substring(0, 8), 16) % 1024;
-    
-    if (!vocab[token]) {
-      vocab[token] = 0;
-    }
-    vocab[token] += 1;
-    vector[index] += 1;
-  });
-
-  return vector;
-}
-
-/**
- * Main function to upsert all vectors
- */
-async function upsertAllVectors() {
+async function upsertAllSections() {
   console.log('📊 Extracting resume sections...');
   const sections = extractResumeSections();
   console.log(`✅ Extracted ${sections.length} sections\n`);
 
-  console.log('🔄 Generating sparse vectors and upserting...\n');
+  console.log('🔄 Upserting sections to Upstash Vector Database...\n');
 
   let successCount = 0;
   let errorCount = 0;
@@ -225,43 +185,24 @@ async function upsertAllVectors() {
   for (let i = 0; i < sections.length; i++) {
     const section = sections[i];
     try {
-      console.log(`[${i + 1}/${sections.length}] Processing: ${section.id}`);
+      console.log(`[${i + 1}/${sections.length}] ${section.id}`);
       
-      // Generate sparse vector as array
-      const denseVector = generateSparseVector(section.text);
-      
-      // Convert dense array to sparse format {indices: [], values: []}
-      const indices = [];
-      const values = [];
-      denseVector.forEach((val, idx) => {
-        if (val > 0) {
-          indices.push(idx);
-          values.push(val);
-        }
-      });
-      
-      const sparseVector = {
-        indices: indices.length > 0 ? indices : [0],
-        values: values.length > 0 ? values : [0.1]
-      };
-      
-      // Upsert to Upstash using sparse vector format
+      // Upsert to Upstash - Upstash handles embedding via BM25 model
       await index.upsert({
         id: section.id,
-        vector: sparseVector,
-        metadata: {
-          ...section.metadata,
-          text: section.text,
-          textPreview: section.text.substring(0, 100)
-        }
+        data: section.data,
+        metadata: section.metadata
       });
       
       successCount++;
-      console.log(`  ✅ Upserted sparse vector: ${section.id}`);
+      console.log(`  ✅ Upserted to Upstash`);
     } catch (error) {
       errorCount++;
-      console.error(`  ❌ Error upserting ${section.id}:`, error.message);
+      console.error(`  ❌ Error: ${error.message}`);
     }
+    
+    // Small delay between uploads
+    await new Promise(resolve => setTimeout(resolve, 50));
   }
 
   console.log(`\n📈 Results:`);
@@ -272,7 +213,7 @@ async function upsertAllVectors() {
 
 // Run the pipeline
 if (require.main === module) {
-  upsertAllVectors()
+  upsertAllSections()
     .then(() => {
       console.log('\n✨ Embedding pipeline completed successfully!');
       process.exit(0);
@@ -283,4 +224,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { generateSparseVector, extractResumeSections };
+module.exports = { extractResumeSections };
