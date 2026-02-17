@@ -641,6 +641,36 @@
     }
   });
 
+  // Populate job selector with company names
+  async function populateJobSelector() {
+    const jobs = [
+      'jobs/01_junior_software_developer_linkedin.md',
+      'jobs/02_full_stack_developer_indeed.md',
+      'jobs/03_frontend_engineer_seek.md',
+      'jobs/04_devops_engineer_linkedin.md',
+      'jobs/05_qa_test_engineer_seek.md'
+    ];
+
+    for (const jobPath of jobs) {
+      try {
+        const response = await fetch(jobPath);
+        const jobContent = await response.text();
+        const jobDetails = parseJobMarkdown(jobContent);
+        
+        // Create option with title and company
+        const option = document.createElement('option');
+        option.value = jobPath;
+        option.textContent = `${jobDetails.title} - ${jobDetails.company}`;
+        jobSelect.appendChild(option);
+      } catch (error) {
+        console.error(`Error loading ${jobPath}:`, error);
+      }
+    }
+  }
+
+  // Populate job selector on load
+  populateJobSelector();
+
   // Initialize with default Q&A mode
   appendMsg("Hello! I'm your resume AI assistant. Ask me anything about your background.", 'bot');
 
