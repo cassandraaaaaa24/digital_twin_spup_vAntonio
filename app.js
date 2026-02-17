@@ -173,6 +173,138 @@
 
   let currentMode = 'qa'; // 'qa' or 'interview'
   let currentInterviewJob = null;
+  let currentMatchScore = null;
+
+  // Match calculation functions (from interview_simulator.html)
+  function calculateMatchScore(jobDetails) {
+    const resumeSkills = extractResumeSkills();
+    const jobSkillsList = parseJobSkills(jobDetails);
+    let skillMatches = 0;
+    
+    for (let jobSkill of jobSkillsList) {
+      const jobSkillLower = jobSkill.toLowerCase();
+      for (let resumeSkill of resumeSkills) {
+        const resumeSkillLower = resumeSkill.toLowerCase();
+        if (jobSkillLower === resumeSkillLower || 
+            jobSkillLower.includes(resumeSkillLower) || 
+            resumeSkillLower.includes(jobSkillLower)) {
+          skillMatches++;
+          break;
+        }
+      }
+    }
+
+    let score = 0;
+    const skillScore = jobSkillsList.length > 0 ? (skillMatches / jobSkillsList.length) * 100 : 50;
+    score += skillScore * 0.5;
+
+    const resumeLevel = getResumeExperienceLevel();
+    const jobLevel = getJobExperienceLevel(jobDetails);
+    const levelAlignment = calculateLevelAlignment(resumeLevel, jobLevel);
+    score += levelAlignment * 0.25;
+
+    const certRelevance = evaluateCertificateRelevance(jobDetails);
+    score += certRelevance * 0.15;
+
+    const projectRelevance = evaluateProjectExperience(jobDetails);
+    score += projectRelevance * 0.1;
+
+    return Math.min(Math.max(Math.round(score), 15), 92);
+  }
+
+  function parseJobSkills(jobDetails) {
+    const skillsSet = new Set();
+    if (jobDetails.skills && Array.isArray(jobDetails.skills)) {
+      jobDetails.skills.forEach(skill => skillsSet.add(skill.trim()));
+    }
+    if (jobDetails.responsibilities && Array.isArray(jobDetails.responsibilities)) {
+      jobDetails.responsibilities.forEach(resp => {
+        const keywords = extractTechKeywords(resp);
+        keywords.forEach(kw => skillsSet.add(kw));
+      });
+    }
+    return Array.from(skillsSet);
+  }
+
+  function extractTechKeywords(text) {
+    const keywords = [];
+    const techTerms = ['python', 'javascript', 'java', 'c#', 'html', 'css', 'react', 'node.js', 'express', 'django', 'flask', 'rest api', 'sql', 'mongodb', 'git', 'docker', 'kubernetes', 'aws', 'azure', 'gcp', 'ci/cd', 'jenkins', 'testing', 'agile', 'scrum', 'typescript', 'angular', 'vue', 'bootstrap', 'tailwind', 'php', 'kotlin', 'ai', 'machine learning', 'automation', 'devops', 'linux', 'windows'];
+    const textLower = text.toLowerCase();
+    techTerms.forEach(term => { if (textLower.includes(term)) keywords.push(term); });
+    return keywords;
+  }
+
+  function extractResumeSkills() {
+    const skills = [];
+    if (window.resumeData && window.resumeData.skills) {
+      Object.values(window.resumeData.skills).forEach(skillCategory => {
+        if (Array.isArray(skillCategory)) {
+          skillCategory.forEach(skill => { skills.push(skill.trim()); });
+        }
+      });
+    }
+    return skills.length > 0 ? skills : ['Learning', 'Problem-solving', 'Communication'];
+  }
+
+  function getResumeExperienceLevel() { return 1; }
+
+  function getJobExperienceLevel(jobDetails) {
+    const experienceText = (jobDetails.experience || []).join(' ').toLowerCase();
+    const titleLower = (jobDetails.title || '').toLowerCase();
+    if (titleLower.includes('junior') || titleLower.includes('entry')) return 1;
+    else if (titleLower.includes('mid') || titleLower.includes('senior')) return 5;
+    else if (titleLower.includes('lead') || titleLower.includes('principal')) return 7;
+    if (experienceText.includes('0-1') || experienceText.includes('entry')) return 1;
+    else if (experienceText.includes('1-2') || experienceText.includes('2-3')) return 2;
+    else if (experienceText.includes('3-5') || experienceText.includes('3+') || experienceText.includes('4+')) return 4;
+    else if (experienceText.includes('5+') || experienceText.includes('5-7')) return 5;
+    else if (experienceText.includes('7+') || experienceText.includes('10+')) return 7;
+    return 3;
+  }
+
+  function calculateLevelAlignment(resumeLevel, jobLevel) {
+    const difference = Math.abs(resumeLevel - jobLevel);
+    if (difference === 0) return 100;
+    else if (difference === 1) return 80;
+    else if (difference === 2) return 60;
+    else if (difference >= 3 && resumeLevel < jobLevel) return 40;
+    else if (difference >= 3 && resumeLevel > jobLevel) return 70;
+    return 50;
+  }
+
+  function evaluateCertificateRelevance(jobDetails) {
+    if (!window.resumeData || !window.resumeData.certifications) return 0.5;
+    const jobTitle = (jobDetails.title || '').toLowerCase();
+    const jobSkills = (jobDetails.skills || []).map(s => s.toLowerCase()).join(' ');
+    let relevantCerts = 0;
+    window.resumeData.certifications.forEach(cert => {
+      const certLower = cert.toLowerCase();
+      if ((jobTitle.includes('ai') || jobSkills.includes('ai')) && certLower.includes('ai')) relevantCerts++;
+      else if ((jobTitle.includes('frontend') || jobSkills.includes('react')) && (certLower.includes('sveltekit') || certLower.includes('framework'))) relevantCerts++;
+      else if ((jobTitle.includes('fintech') || jobSkills.includes('fintech')) && certLower.includes('fintech')) relevantCerts++;
+      else if ((jobTitle.includes('automation') || jobSkills.includes('automation')) && certLower.includes('automation')) relevantCerts++;
+      else if ((jobTitle.includes('cybersecurity') || jobSkills.includes('security')) && certLower.includes('cyber')) relevantCerts++;
+    });
+    const totalCerts = window.resumeData.certifications.length || 32;
+    return Math.min(0.5 + (relevantCerts / totalCerts) * 0.5, 1);
+  }
+
+  function evaluateProjectExperience(jobDetails) {
+    if (!window.resumeData || !window.resumeData.events) return 0.5;
+    const jobTitle = (jobDetails.title || '').toLowerCase();
+    const jobSkills = (jobDetails.skills || []).map(s => s.toLowerCase()).join(' ');
+    let relevantEvents = 0;
+    window.resumeData.events.forEach(event => {
+      const eventLower = event.title.toLowerCase();
+      if (eventLower.includes('hackathon')) relevantEvents++;
+      else if ((jobTitle.includes('ai') || jobSkills.includes('ai')) && eventLower.includes('ai')) relevantEvents++;
+      else if ((jobTitle.includes('automation') || jobSkills.includes('automation')) && eventLower.includes('automation')) relevantEvents++;
+      else if ((jobTitle.includes('frontend') || jobSkills.includes('react')) && eventLower.includes('framework')) relevantEvents++;
+      else if ((jobTitle.includes('fintech') || jobSkills.includes('fintech')) && eventLower.includes('fintech')) relevantEvents++;
+    });
+    const totalEvents = window.resumeData.events.length || 21;
+    return Math.min(0.5 + (relevantEvents / totalEvents) * 0.5, 1);
+  }
 
   chatToggle.addEventListener('click', () => { chatPanel.classList.toggle('hidden'); });
   closeChat.addEventListener('click', () => { chatPanel.classList.add('hidden'); });
@@ -210,34 +342,120 @@
     }
     
     currentInterviewJob = selectedJob;
-    chatForm.style.display = 'flex';
-    interviewModePanel.style.display = 'none';
-    chatLog.innerHTML = '';
     
-    // Get job title from file path
-    const jobTitle = selectedJob.split('_').slice(1, -1).join(' ').replace(/\.md$/, '');
-    appendMsg(`Great! We're now practicing for the ${jobTitle} position. I'll ask you interview questions based on this role. Let's begin! 🎤`, 'bot');
-    
-    // Generate first question
-    setTimeout(() => {
-      generateInterviewQuestion(selectedJob);
-    }, 800);
+    // Load and parse job file
+    try {
+      const response = await fetch(selectedJob);
+      const jobContent = await response.text();
+      const jobDetails = parseJobMarkdown(jobContent);
+      
+      // Calculate match score
+      currentMatchScore = calculateMatchScore(jobDetails);
+      
+      // Switch to chat mode
+      chatForm.style.display = 'flex';
+      interviewModePanel.style.display = 'none';
+      chatLog.innerHTML = '';
+      
+      // Display match score
+      const scoreColor = currentMatchScore >= 70 ? '#4CAF50' : currentMatchScore >= 50 ? '#FF9800' : '#f44336';
+      const scoreInterpretation = currentMatchScore >= 85 ? "Excellent Match - Strong Candidate" :
+                                  currentMatchScore >= 70 ? "Good Match - Well Qualified" :
+                                  currentMatchScore >= 55 ? "Moderate Match - Good Foundation" :
+                                  currentMatchScore >= 40 ? "Fair Match - Growth Opportunity" :
+                                  "Entry Level Match - Stretch Role";
+      
+      const matchMessage = `Welcome to the ${jobDetails.title} interview! 🎤\n\n📊 Your Match Score: ${currentMatchScore}% (${scoreInterpretation})\n\nLet's begin with some interview questions!`;
+      appendMsg(matchMessage, 'bot');
+      
+      // Generate first question
+      setTimeout(() => {
+        generateInterviewQuestion(jobDetails);
+      }, 1500);
+    } catch (error) {
+      appendMsg("Error loading job details. Please try again.", 'bot');
+      console.error("Error:", error);
+    }
   });
 
-  function generateInterviewQuestion(jobPath) {
+  function parseJobMarkdown(content) {
+    const lines = content.split('\n');
+    const parsed = {
+      title: '',
+      company: '',
+      location: '',
+      type: '',
+      responsibilities: [],
+      skills: [],
+      experience: [],
+      salary: ''
+    };
+
+    let currentSection = null;
+
+    for (let line of lines) {
+      line = line.trim();
+      if (line.startsWith('# ')) {
+        parsed.title = line.replace(/^# /, '').trim();
+      } else if (line.startsWith('## Company')) {
+        currentSection = 'company';
+      } else if (line.startsWith('## Key Responsibilities')) {
+        currentSection = 'responsibilities';
+      } else if (line.startsWith('## Required Skills')) {
+        currentSection = 'skills';
+      } else if (line.startsWith('## Experience')) {
+        currentSection = 'experience';
+      } else if (line.startsWith('- ')) {
+        const item = line.replace(/^- /, '').trim();
+        if (currentSection === 'responsibilities') {
+          parsed.responsibilities.push(item);
+        } else if (currentSection === 'skills') {
+          parsed.skills.push(item);
+        } else if (currentSection === 'experience') {
+          parsed.experience.push(item);
+        }
+      } else if (currentSection === 'company' && line && !line.startsWith('**') && parsed.company === '') {
+        parsed.company = line;
+      }
+    }
+
+    return parsed;
+  }
+
+  function generateInterviewQuestion(jobDetails) {
     showTyping(true);
-    const questions = [
-      "Tell me about yourself and your experience with software development.",
-      "What interests you in this particular position?",
-      "Describe a challenging problem you've solved. How did you approach it?",
-      "What are your strongest technical skills?",
-      "How do you stay updated with the latest technologies?",
-      "Tell me about a time you worked in a team. How did you contribute?",
-      "What are your career goals for the next 5 years?",
-      "Describe your experience with version control and collaboration tools.",
-      "How do you approach debugging and problem-solving?",
-      "What would you do if you encountered a technology you didn't know?"
-    ];
+    
+    // Tailor questions based on match score
+    let questions = [];
+    
+    if (currentMatchScore >= 70) {
+      // Strong candidate - deeper technical questions
+      questions = [
+        `Tell me about your experience with ${jobDetails.skills[0] || 'the required tech stack'}. How have you applied it in real projects?`,
+        `Describe a time when you had to ${jobDetails.responsibilities[0]?.toLowerCase() || 'solve a complex technical problem'}. What was your approach?`,
+        "What are your most significant technical accomplishments?",
+        "How do you approach learning new technologies?",
+        "Tell us about your experience with the technologies mentioned in the job description."
+      ];
+    } else if (currentMatchScore >= 50) {
+      // Moderate candidate - balanced questions
+      questions = [
+        `Tell us about your experience with ${jobDetails.skills[0] || 'software development'}.`,
+        "What interests you about this role?",
+        "How would you approach learning the skills you don't yet have?",
+        `Describe a project where you had to learn something new.`,
+        "What can you tell us about our technology stack?"
+      ];
+    } else {
+      // Entry level / stretch role - foundational questions
+      questions = [
+        "Tell us about yourself and your tech background.",
+        "What interests you in transitioning to this role?",
+        "What are you willing to learn to succeed in this position?",
+        "Describe your approach to solving technical problems.",
+        "Why do you think you'd be a good fit despite the experience gap?"
+      ];
+    }
     
     const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
     
@@ -351,17 +569,37 @@
 
     // Determine response based on mode
     if (currentMode === 'interview') {
-      // Interview mode: provide feedback and ask next question
+      // Interview mode: provide match-aware feedback and ask next question
       setTimeout(() => {
         showTyping(false);
         chatInput.disabled = false;
-        const feedbackMessages = [
-          "That's a great answer! Let me ask you another question.",
-          "I appreciate that response. Here's my next question:",
-          "Excellent! Now let's explore another area:",
-          "Good answer. Let me follow up with:",
-          "I like your thinking. Here's another question:"
-        ];
+        
+        let feedbackMessages = [];
+        
+        // Tailor feedback based on match score
+        if (currentMatchScore >= 70) {
+          feedbackMessages = [
+            "Excellent technical insight! Let's explore another area:",
+            "That demonstrates strong expertise. Here's my next question:",
+            "Great articulation of that concept. Moving on:",
+            "I appreciate the depth of your knowledge. Let's continue:"
+          ];
+        } else if (currentMatchScore >= 50) {
+          feedbackMessages = [
+            "Good answer! Here's another question to explore:",
+            "I see your perspective. Let me ask about:",
+            "That's solid. Let's dig deeper into:",
+            "Thanks for that response. Next question:"
+          ];
+        } else {
+          feedbackMessages = [
+            "I appreciate your willingness to learn. Let's explore further:",
+            "Good starting point. Here's another area we should cover:",
+            "That's helpful context. Moving to the next topic:",
+            "Let's continue building your understanding:"
+          ];
+        }
+        
         const feedback = feedbackMessages[Math.floor(Math.random() * feedbackMessages.length)];
         appendMsg(feedback, 'bot');
         generateInterviewQuestion(currentInterviewJob);
