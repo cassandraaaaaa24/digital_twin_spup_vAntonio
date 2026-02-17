@@ -80,7 +80,72 @@ const resumeData = {
     "JPCS-SPUP Member 2025-2026",
     "JPCS-SPUP Director for Special Projects 2024-2025",
     "Consistent President’s Lister"
-  ]
+  ],
+  skills: {
+    technicalAreas: [
+      "Information Technology",
+      "Software Development",
+      "Web Development",
+      "Database Management",
+      "AI Applications",
+      "IoT and Embedded Systems",
+      "Project Consulting",
+      "Research",
+      "Innovation and Entrepreneurship",
+      "Technical Writing",
+      "Filmmaking"
+    ],
+    programmingLanguages: [
+      "C#",
+      "Python",
+      "Java",
+      "HTML",
+      "CSS",
+      "JavaScript",
+      "PHP",
+      "Kotlin",
+      "XML",
+      "JSON"
+    ],
+    frameworksLibraries: [
+      "React",
+      "Node.js",
+      "Django",
+      "Flask",
+      "Bootstrap",
+      "Tailwind CSS"
+    ],
+    databases: [
+      "SQL",
+      "MySQL",
+      "PostgreSQL",
+      "SQLite",
+      "MongoDB"
+    ],
+    technicalITSkills: [
+      "Git",
+      "GitHub",
+      "Version Control Systems",
+      "REST APIs",
+      "Object-Oriented Programming (OOP)",
+      "Data Structures & Algorithms",
+      "Debugging & Troubleshooting",
+      "Software Testing",
+      "Agile / Scrum Basics",
+      "Command Line (Linux/Windows)",
+      "Networking Fundamentals"
+    ],
+    hardwareTools: [
+      "Arduino Device Configuration",
+      "Raspberry Pi Device Configuration"
+    ],
+    toolsPlatforms: [
+      "Visual Studio Code",
+      "Eclipse",
+      "Linux",
+      "Windows"
+    ]
+  }
 };
 
 // Browser compatibility: assign to window

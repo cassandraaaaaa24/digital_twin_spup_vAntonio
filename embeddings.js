@@ -82,6 +82,30 @@ function extractResumeSections() {
     });
   });
 
+  // Skills
+  if (resumeData.skills) {
+    Object.entries(resumeData.skills).forEach(([category, skillList]) => {
+      const categoryName = category.replace(/([A-Z])/g, ' $1').toLowerCase().trim();
+      
+      if (Array.isArray(skillList)) {
+        sections.push({
+          id: `skills_${category}`,
+          data: `Skills - ${categoryName}: ${skillList.join(', ')}`,
+          metadata: { category: 'skills', subcategory: categoryName }
+        });
+
+        // Also add individual skill entries for better matching
+        skillList.forEach((skill, index) => {
+          sections.push({
+            id: `skill_${category}_${index}`,
+            data: `Skill: ${skill} (${categoryName})`,
+            metadata: { category: 'skills', subcategory: categoryName, skill }
+          });
+        });
+      }
+    });
+  }
+
   return sections;
 }
 
@@ -143,4 +167,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { extractResumeSections };
+module.exports = { extractResumeSections, upsertAllSections };
