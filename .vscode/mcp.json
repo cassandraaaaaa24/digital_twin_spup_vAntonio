@@ -1,0 +1,16 @@
+{
+  "name": "Run MCP Server",
+  "transport": "local",
+  "command": "node",
+  "args": ["src/mcp-server/server.js"],
+  "env": {
+    "MCP_PORT": "4000",
+    "UPSTASH_VECTOR_REST_URL": "<YOUR_UPSTASH_VECTOR_REST_URL>",
+    "UPSTASH_VECTOR_REST_TOKEN": "<YOUR_UPSTASH_VECTOR_REST_TOKEN>",
+    "GROQ_API_KEY": "<YOUR_GROQ_API_KEY>"
+  },
+  "presentation": {
+    "panel": "dedicated"
+  },
+  "description": "Run the local MCP server for ingest and query (shows transport, command, args, env)"
+}
