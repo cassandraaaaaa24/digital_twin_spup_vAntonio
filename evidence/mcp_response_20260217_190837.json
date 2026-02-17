@@ -1,0 +1,16 @@
+﻿{
+    "query":  "What is my degree?",
+    "matches":  [
+                    {
+                        "id":  "personal_degree",
+                        "score":  2.4811814,
+                        "text":  "Personal: degree - undefined"
+                    },
+                    {
+                        "id":  "education_degree",
+                        "score":  2.4811814,
+                        "text":  "Education: degree - Bachelor of Science in Information Technology"
+                    }
+                ],
+    "reply":  "According to the provided context, your degree is a Bachelor of Science in Information Technology."
+}
