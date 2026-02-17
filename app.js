@@ -174,6 +174,9 @@
   let currentMode = 'qa'; // 'qa' or 'interview'
   let currentInterviewJob = null;
   let currentMatchScore = null;
+  let interviewQuestionCount = 0;
+  let questionScores = [];
+  let currentJobDetails = null;
 
   // Match calculation functions (from interview_simulator.html)
   function calculateMatchScore(jobDetails) {
@@ -343,11 +346,17 @@
     
     currentInterviewJob = selectedJob;
     
+    // Reset interview tracking variables
+    interviewQuestionCount = 0;
+    questionScores = [];
+    currentJobDetails = null;
+    
     // Load and parse job file
     try {
       const response = await fetch(selectedJob);
       const jobContent = await response.text();
       const jobDetails = parseJobMarkdown(jobContent);
+      currentJobDetails = jobDetails;
       
       // Calculate match score
       currentMatchScore = calculateMatchScore(jobDetails);
@@ -390,9 +399,9 @@
           // Animation complete, show final message with interpretation
           lastMsg.textContent = `Welcome to the ${jobDetails.title} interview! 🎤\n\n📊 Your Match Score: ${currentMatchScore}% (${scoreInterpretation})\n\nLet's begin with some interview questions!`;
           
-          // Generate first question
+          // Start the auto-flow interview with question 1
           setTimeout(() => {
-            generateInterviewQuestion(jobDetails);
+            generateInterviewQuestion(jobDetails, 1);
           }, 1000);
         }
       };
@@ -448,14 +457,110 @@
     return parsed;
   }
 
-  function generateInterviewQuestion(jobDetails) {
+  function generateAnswerFromResume(question) {
+    const qa = window.resumeData;
+    const qLower = question.toLowerCase();
+    
+    const answers = {
+      experience: [
+        `I've gained practical experience through my ${qa.education.degree} program at ${qa.education.school}, with a focus on ${qa.education.capstone}. I've participated in ${qa.events.length} tech events and workshops, which have provided hands-on exposure to industry practices. My ${qa.certifications.length} certifications demonstrate my commitment to continuous learning.`,
+      ],
+      technical: [
+        `I have experience with multiple technologies and frameworks. Through my ${qa.education.degree} coursework and ${qa.certifications.length} certifications, I've developed strong technical foundations. My capstone project "${qa.education.capstone}" required implementing complex solutions, and I continue building these skills through industry events and certifications.`,
+      ],
+      learning: [
+        `I'm passionate about continuous learning. My ${qa.certifications.length} certifications demonstrate my commitment to skill development. I stay updated through tech events like ${qa.events.slice(0, 2).map(e => e.title).join(' and ')}, documentation, and hands-on projects. When facing new technologies, I approach them systematically - studying fundamentals, building projects, and learning from community best practices.`,
+      ],
+      motivation: [
+        `I'm genuinely excited about this opportunity because it aligns with my passion for technology and growth. My track record speaks for itself - I've earned ${qa.certifications.length} certifications and actively participated in ${qa.events.length} tech events. I'm motivated to apply my skills in a professional environment while continuing to develop my expertise.`,
+      ],
+      teamwork: [
+        `I believe effective collaboration is essential. Through my ${qa.education.degree} program and participation in ${qa.events.length} tech events, I've learned to communicate clearly and work productively with diverse team members. I'm affiliated with ${qa.affiliations.slice(0, 2).join(' and ')} which has enhanced my collaborative skills. I'm comfortable both contributing individual work and supporting teammates.`,
+      ]
+    };
+    
+    let answerType = 'experience';
+    if (/(technical|technology|programming|framework|language)/.test(qLower)) answerType = 'technical';
+    if (/(learn|training|skill|new|approach)/.test(qLower)) answerType = 'learning';
+    if (/(interest|motivation|excit|passion|why)/.test(qLower)) answerType = 'motivation';
+    if (/(team|collaborate|work|difficult)/.test(qLower)) answerType = 'teamwork';
+    
+    return answers[answerType][0];
+  }
+
+  function calculatePerQuestionScore(jobDetails, questionNum) {
+    const qa = window.resumeData;
+    
+    // Distribute the overall match score across 5 questions
+    // Each question focuses on different aspects
+    const skillScore = evaluateSkillMatch(jobDetails) * 0.5;
+    const levelScore = calculateLevelAlignment(getResumeExperienceLevel(), getJobExperienceLevel(jobDetails)) * 0.25;
+    const certScore = evaluateCertificateRelevance(jobDetails) * 0.15;
+    const projectScore = evaluateProjectExperience(jobDetails) * 0.1;
+    
+    let baseScore = 0;
+    
+    // Distribute scores across questions
+    switch(questionNum) {
+      case 1: baseScore = skillScore * 1.2; break;
+      case 2: baseScore = (skillScore * 0.8) + (projectScore * 1.0); break;
+      case 3: baseScore = (certScore * 1.5) + (projectScore * 0.5); break;
+      case 4: baseScore = (certScore * 1.0) + (skillScore * 0.5); break;
+      case 5: baseScore = (levelScore * 1.5) + (certScore * 0.5); break;
+    }
+    
+    return Math.min(Math.max(Math.round(baseScore), 40), 88);
+  }
+
+  function evaluateSkillMatch(jobDetails) {
+    const resumeSkills = extractResumeSkills();
+    const jobSkillsList = parseJobSkills(jobDetails);
+    let skillMatches = 0;
+    
+    for (let jobSkill of jobSkillsList) {
+      const jobSkillLower = jobSkill.toLowerCase();
+      for (let resumeSkill of resumeSkills) {
+        const resumeSkillLower = resumeSkill.toLowerCase();
+        if (jobSkillLower === resumeSkillLower || jobSkillLower.includes(resumeSkillLower) || resumeSkillLower.includes(jobSkillLower)) {
+          skillMatches++;
+          break;
+        }
+      }
+    }
+    
+    return jobSkillsList.length > 0 ? (skillMatches / jobSkillsList.length) * 100 : 50;
+  }
+
+  function animateTyping(element, text, speed = 20, callback = null) {
+    let index = 0;
+    element.textContent = '';
+    element.classList.add('is-typing');
+    
+    const typeChar = () => {
+      if (index < text.length) {
+        element.textContent += text[index];
+        index++;
+        setTimeout(typeChar, speed);
+      } else {
+        element.classList.remove('is-typing');
+        if (callback) callback();
+      }
+    };
+    typeChar();
+  }
+
+  function generateInterviewQuestion(jobDetails, questionNum = 1) {
+    if (questionNum > 5) {
+      showTyping(false);
+      displayInterviewSummary();
+      return;
+    }
+    
     showTyping(true);
     
-    // Tailor questions based on match score
     let questions = [];
     
     if (currentMatchScore >= 70) {
-      // Strong candidate - deeper technical questions
       questions = [
         `Tell me about your experience with ${jobDetails.skills[0] || 'the required tech stack'}. How have you applied it in real projects?`,
         `Describe a time when you had to ${jobDetails.responsibilities[0]?.toLowerCase() || 'solve a complex technical problem'}. What was your approach?`,
@@ -464,7 +569,6 @@
         "Tell us about your experience with the technologies mentioned in the job description."
       ];
     } else if (currentMatchScore >= 50) {
-      // Moderate candidate - balanced questions
       questions = [
         `Tell us about your experience with ${jobDetails.skills[0] || 'software development'}.`,
         "What interests you about this role?",
@@ -473,7 +577,6 @@
         "What can you tell us about our technology stack?"
       ];
     } else {
-      // Entry level / stretch role - foundational questions
       questions = [
         "Tell us about yourself and your tech background.",
         "What interests you in transitioning to this role?",
@@ -483,12 +586,71 @@
       ];
     }
     
-    const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+    const question = questions[questionNum - 1];
     
     setTimeout(() => {
       showTyping(false);
-      appendMsg(randomQuestion, 'bot');
-    }, 1000);
+      
+      const qMsg = document.createElement('div');
+      qMsg.className = 'msg bot';
+      qMsg.innerHTML = `<strong>Q${questionNum}:</strong> ${question}`;
+      chatLog.appendChild(qMsg);
+      chatLog.scrollTop = chatLog.scrollHeight;
+      
+      setTimeout(() => {
+        const answer = generateAnswerFromResume(question);
+        const qScore = calculatePerQuestionScore(jobDetails, questionNum);
+        questionScores.push(qScore);
+        
+        const aMsg = document.createElement('div');
+        aMsg.className = 'msg user answer-msg';
+        chatLog.appendChild(aMsg);
+        chatLog.scrollTop = chatLog.scrollHeight;
+        
+        animateTyping(aMsg, answer, 15, () => {
+          setTimeout(() => {
+            const scoreMsg = document.createElement('div');
+            scoreMsg.className = 'msg bot score-msg';
+            chatLog.appendChild(scoreMsg);
+            
+            // Animate score counter
+            let displayScore = 0;
+            const scoreInterval = setInterval(() => {
+              displayScore += Math.ceil(qScore / 12);
+              if (displayScore >= qScore) {
+                displayScore = qScore;
+                clearInterval(scoreInterval);
+              }
+              scoreMsg.textContent = `Q${questionNum} Match: ${displayScore}%`;
+              chatLog.scrollTop = chatLog.scrollHeight;
+            }, 50);
+            
+            setTimeout(() => {
+              generateInterviewQuestion(jobDetails, questionNum + 1);
+            }, 1500);
+          }, 300);
+        });
+      }, 800);
+    }, 800);
+  }
+
+  function displayInterviewSummary() {
+    const avgScore = Math.round(questionScores.reduce((a, b) => a + b, 0) / questionScores.length);
+    
+    const summaryMsg = document.createElement('div');
+    summaryMsg.className = 'msg bot summary-msg';
+    chatLog.appendChild(summaryMsg);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    
+    let content = `✨ Interview Complete! ✨\n\n`;
+    content += `📊 Average Match Score: ${avgScore}%\n`;
+    content += `Initial Match Score: ${currentMatchScore}%\n\n`;
+    content += `Individual Scores:\n`;
+    questionScores.forEach((score, i) => {
+      content += `  Q${i + 1}: ${score}%\n`;
+    });
+    
+    animateTyping(summaryMsg, content, 15);
   }
 
   function appendMsg(text, who='bot'){

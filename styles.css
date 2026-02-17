@@ -629,6 +629,42 @@ body {
 	border-bottom-left-radius: 4px;
 }
 
+.msg.answer-msg {
+	background: var(--primary);
+	color: #fff;
+	margin-left: auto;
+	border-bottom-right-radius: 4px;
+	font-style: italic;
+	min-height: 40px;
+}
+
+.msg.score-msg {
+	background: #f0f0f0;
+	color: var(--primary);
+	font-weight: bold;
+	text-align: right;
+	border-left: 4px solid var(--primary);
+	padding: 10px 16px;
+}
+
+.msg.summary-msg {
+	background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+	color: var(--text);
+	font-family: 'Courier New', monospace;
+	font-size: 13px;
+	white-space: pre-wrap;
+	line-height: 1.6;
+	border: 2px solid var(--accent);
+	border-radius: 12px;
+}
+
+.is-typing {
+	background: var(--primary) !important;
+	color: #fff;
+	position: relative;
+	min-height: 20px;
+}
+
 .typing {
 	display: flex;
 	align-items: center;
