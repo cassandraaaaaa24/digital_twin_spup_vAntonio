@@ -128,13 +128,35 @@
     <aside id="chatPanel" class="chat-panel hidden">
       <div class="chat-header">
         <h3>Resume AI Assistant</h3>
+        <div class="chat-modes">
+          <button id="modeQA" class="chat-mode-btn active" data-mode="qa" title="Q&A Mode">❓ Q&A</button>
+          <button id="modeInterview" class="chat-mode-btn" data-mode="interview" title="Interview Mode">🎤 Interview</button>
+        </div>
         <button id="closeChat" class="close-btn">×</button>
       </div>
       <div id="chatLog" class="chat-log"></div>
-      <form id="chatForm" class="chat-form">
+      
+      <!-- Q&A Mode Input -->
+      <form id="chatForm" class="chat-form" style="display: flex;">
         <input id="chatInput" placeholder="Ask about the resume..." autocomplete="off" />
         <button type="submit">Send</button>
       </form>
+
+      <!-- Interview Mode Selection (hidden by default) -->
+      <div id="interviewModePanel" class="interview-mode-panel" style="display: none;">
+        <div class="interview-job-selector">
+          <label for="jobSelect">Select a job to practice:</label>
+          <select id="jobSelect">
+            <option value="">Choose a position...</option>
+            <option value="jobs/01_junior_software_developer_linkedin.md">Junior Software Developer</option>
+            <option value="jobs/02_full_stack_developer_indeed.md">Full Stack Developer</option>
+            <option value="jobs/03_frontend_engineer_seek.md">Frontend Engineer</option>
+            <option value="jobs/04_devops_engineer_linkedin.md">DevOps Engineer</option>
+            <option value="jobs/05_qa_test_engineer_seek.md">QA Test Engineer</option>
+          </select>
+          <button id="startInterviewBtn" type="button" class="interview-start-btn">Start Interview Practice</button>
+        </div>
+      </div>
     </aside>
 
     <script src="data.js"></script>

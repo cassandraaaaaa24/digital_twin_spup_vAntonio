@@ -165,9 +165,87 @@
   const chatForm = document.getElementById('chatForm');
   const chatInput = document.getElementById('chatInput');
   const chatLog = document.getElementById('chatLog');
+  const modeQABtn = document.getElementById('modeQA');
+  const modeInterviewBtn = document.getElementById('modeInterview');
+  const interviewModePanel = document.getElementById('interviewModePanel');
+  const jobSelect = document.getElementById('jobSelect');
+  const startInterviewBtn = document.getElementById('startInterviewBtn');
+
+  let currentMode = 'qa'; // 'qa' or 'interview'
+  let currentInterviewJob = null;
 
   chatToggle.addEventListener('click', () => { chatPanel.classList.toggle('hidden'); });
   closeChat.addEventListener('click', () => { chatPanel.classList.add('hidden'); });
+
+  // Mode switching
+  function switchMode(mode) {
+    currentMode = mode;
+    // Update button states
+    if (mode === 'qa') {
+      modeQABtn.classList.add('active');
+      modeInterviewBtn.classList.remove('active');
+      chatForm.style.display = 'flex';
+      interviewModePanel.style.display = 'none';
+      chatLog.innerHTML = ''; // Clear chat log
+      appendMsg("Hello! I'm your resume AI assistant. Ask me anything about your background.", 'bot');
+    } else if (mode === 'interview') {
+      modeQABtn.classList.remove('active');
+      modeInterviewBtn.classList.add('active');
+      chatForm.style.display = 'none';
+      interviewModePanel.style.display = 'block';
+      chatLog.innerHTML = ''; // Clear chat log
+      appendMsg("Welcome to Interview Practice Mode! Select a job position and I'll conduct a mock interview.", 'bot');
+    }
+  }
+
+  modeQABtn.addEventListener('click', () => switchMode('qa'));
+  modeInterviewBtn.addEventListener('click', () => switchMode('interview'));
+
+  // Interview mode handler
+  startInterviewBtn.addEventListener('click', async () => {
+    const selectedJob = jobSelect.value;
+    if (!selectedJob) {
+      appendMsg("Please select a job position first.", 'bot');
+      return;
+    }
+    
+    currentInterviewJob = selectedJob;
+    chatForm.style.display = 'flex';
+    interviewModePanel.style.display = 'none';
+    chatLog.innerHTML = '';
+    
+    // Get job title from file path
+    const jobTitle = selectedJob.split('_').slice(1, -1).join(' ').replace(/\.md$/, '');
+    appendMsg(`Great! We're now practicing for the ${jobTitle} position. I'll ask you interview questions based on this role. Let's begin! 🎤`, 'bot');
+    
+    // Generate first question
+    setTimeout(() => {
+      generateInterviewQuestion(selectedJob);
+    }, 800);
+  });
+
+  function generateInterviewQuestion(jobPath) {
+    showTyping(true);
+    const questions = [
+      "Tell me about yourself and your experience with software development.",
+      "What interests you in this particular position?",
+      "Describe a challenging problem you've solved. How did you approach it?",
+      "What are your strongest technical skills?",
+      "How do you stay updated with the latest technologies?",
+      "Tell me about a time you worked in a team. How did you contribute?",
+      "What are your career goals for the next 5 years?",
+      "Describe your experience with version control and collaboration tools.",
+      "How do you approach debugging and problem-solving?",
+      "What would you do if you encountered a technology you didn't know?"
+    ];
+    
+    const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+    
+    setTimeout(() => {
+      showTyping(false);
+      appendMsg(randomQuestion, 'bot');
+    }, 1000);
+  }
 
   function appendMsg(text, who='bot'){
     const d = document.createElement('div'); d.className = `msg ${who}`; d.textContent = text; chatLog.appendChild(d); chatLog.scrollTop = chatLog.scrollHeight;
@@ -270,15 +348,37 @@
     chatInput.disabled = true;
     showTyping(true);
     ensurePanelVisible();
-    // try server-side AI first
-    const serverResp = await queryServer(val);
-    showTyping(false);
-    chatInput.disabled = false;
-    if(serverResp){ appendMsg(serverResp, 'bot'); return; }
-    // fallback to local responder
-    const resp = answerQuery(val);
-    appendMsg(resp, 'bot');
+
+    // Determine response based on mode
+    if (currentMode === 'interview') {
+      // Interview mode: provide feedback and ask next question
+      setTimeout(() => {
+        showTyping(false);
+        chatInput.disabled = false;
+        const feedbackMessages = [
+          "That's a great answer! Let me ask you another question.",
+          "I appreciate that response. Here's my next question:",
+          "Excellent! Now let's explore another area:",
+          "Good answer. Let me follow up with:",
+          "I like your thinking. Here's another question:"
+        ];
+        const feedback = feedbackMessages[Math.floor(Math.random() * feedbackMessages.length)];
+        appendMsg(feedback, 'bot');
+        generateInterviewQuestion(currentInterviewJob);
+      }, 800);
+    } else {
+      // Q&A mode: normal response
+      const serverResp = await queryServer(val);
+      showTyping(false);
+      chatInput.disabled = false;
+      if(serverResp){ appendMsg(serverResp, 'bot'); return; }
+      const resp = answerQuery(val);
+      appendMsg(resp, 'bot');
+    }
   });
+
+  // Initialize with default Q&A mode
+  appendMsg("Hello! I'm your resume AI assistant. Ask me anything about your background.", 'bot');
 
   // reposition on resize to avoid clipping
   window.addEventListener('resize', ensurePanelVisible);
