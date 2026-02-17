@@ -113,7 +113,9 @@ const resumeData = {
       "Django",
       "Flask",
       "Bootstrap",
-      "Tailwind CSS"
+      "Tailwind CSS",
+      "Webpack",
+      "Vite"
     ],
     databases: [
       "SQL",
@@ -127,13 +129,32 @@ const resumeData = {
       "GitHub",
       "Version Control Systems",
       "REST APIs",
+      "REST API Design and Development",
       "Object-Oriented Programming (OOP)",
+      "Software Design Patterns",
+      "Clean Code Principles",
       "Data Structures & Algorithms",
       "Debugging & Troubleshooting",
       "Software Testing",
-      "Agile / Scrum Basics",
+      "Agile / Scrum Methodologies",
+      "CI/CD Pipelines",
+      "Automated Testing Integration",
       "Command Line (Linux/Windows)",
       "Networking Fundamentals"
+    ],
+    testingQATools: [
+      "Postman",
+      "REST Assured",
+      "SoapUI",
+      "API Testing",
+      "Test Automation"
+    ],
+    webDevelopmentPractices: [
+      "Responsive Design",
+      "Mobile-first Approach",
+      "Web Performance Optimization",
+      "User Experience (UX) Design",
+      "Accessibility (WCAG)"
     ],
     hardwareTools: [
       "Arduino Device Configuration",
@@ -144,6 +165,15 @@ const resumeData = {
       "Eclipse",
       "Linux",
       "Windows"
+    ],
+    softSkills: [
+      "Problem-solving",
+      "Analytical Mindset",
+      "Communication",
+      "Teamwork",
+      "Leadership",
+      "Time Management",
+      "Critical Thinking"
     ]
   }
 };
