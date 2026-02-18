@@ -752,7 +752,7 @@ body {
 	right: 24px;
 	bottom: 24px;
 	width: 380px;
-	height: 540px;
+	height: 600px;
 	background: var(--card);
 	border: 1px solid var(--border);
 	border-radius: 14px;
@@ -863,6 +863,26 @@ body {
 	padding: 16px;
 	overflow-y: auto;
 	background: #f9fafb;
+	min-height: 200px;
+	display: flex;
+	flex-direction: column;
+}
+
+.chat-log::-webkit-scrollbar {
+	width: 6px;
+}
+
+.chat-log::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.chat-log::-webkit-scrollbar-thumb {
+	background: #cbd5e1;
+	border-radius: 3px;
+}
+
+.chat-log::-webkit-scrollbar-thumb:hover {
+	background: #94a3b8;
 }
 
 .msg {
@@ -1007,6 +1027,8 @@ body {
 	padding: 16px;
 	background: #f9fafb;
 	border-top: 1px solid var(--border);
+	max-height: 400px;
+	overflow-y: auto;
 }
 
 .interview-job-selector {
@@ -2034,6 +2056,26 @@ body {
 	padding: 16px;
 	overflow-y: auto;
 	background: #f7f7f7;
+	min-height: 200px;
+	display: flex;
+	flex-direction: column;
+}
+
+.chat-log::-webkit-scrollbar {
+	width: 6px;
+}
+
+.chat-log::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.chat-log::-webkit-scrollbar-thumb {
+	background: #cbd5e1;
+	border-radius: 3px;
+}
+
+.chat-log::-webkit-scrollbar-thumb:hover {
+	background: #94a3b8;
 }
 
 .msg {
