@@ -674,40 +674,11 @@
     interviewModePanel.style.display = 'none';
     chatLog.innerHTML = '';
     
-    // Display welcome message
-    const welcomeMessage = `Welcome to the ${jobData.title} interview! 🎤\n\nAnalyzing your fit...`;
+    // Display welcome message (no initial score animation)
+    const welcomeMessage = `Welcome to the ${jobData.title} interview! 🎤\n\nLet's begin with some interview questions.`;
     appendMsg(welcomeMessage, 'bot');
     
-    // Animate score display
-    const scoreColor = currentMatchScore >= 70 ? '#4CAF50' : currentMatchScore >= 50 ? '#FF9800' : '#f44336';
-    const scoreInterpretation = currentMatchScore >= 85 ? "Excellent Match - Strong Candidate" :
-                                currentMatchScore >= 70 ? "Good Match - Well Qualified" :
-                                currentMatchScore >= 55 ? "Moderate Match - Good Foundation" :
-                                currentMatchScore >= 40 ? "Fair Match - Growth Opportunity" :
-                                "Entry Level Match - Growth Opportunity";
-    
-    const startTime = Date.now();
-    const duration = 2000;
-    
-    const animateScore = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const animatedScore = Math.floor(currentMatchScore * progress);
-      
-      const lastMsg = chatLog.lastChild;
-      if (lastMsg) {
-        lastMsg.textContent = `Welcome to the ${jobData.title} interview! 🎤\n\n📊 Your Match Score: ${animatedScore}% 🔄`;
-      }
-      
-      if (progress < 1) {
-        requestAnimationFrame(animateScore);
-      } else {
-        lastMsg.textContent = `Welcome to the ${jobData.title} interview! 🎤\n\n📊 Your Match Score: ${currentMatchScore}% (${scoreInterpretation})\n\nLet's begin with some interview questions!`;
-        setTimeout(() => generateInterviewQuestion(jobData, 1), 1000);
-      }
-    };
-    
-    requestAnimationFrame(animateScore);
+    setTimeout(() => generateInterviewQuestion(jobData, 1), 1000);
   }
 
   function calculateCustomJobMatch(jobData) {
@@ -1094,7 +1065,13 @@
         animateTyping(aMsg, answer, 15, () => {
           setTimeout(() => {
             const scoreMsg = document.createElement('div');
-            scoreMsg.className = 'msg bot score-msg';
+            scoreMsg.className = 'msg bot';
+            scoreMsg.style.background = '#e3f2fd';
+            scoreMsg.style.borderLeft = '4px solid #2563eb';
+            scoreMsg.style.color = '#1e40af';
+            scoreMsg.style.fontWeight = 'bold';
+            scoreMsg.style.textAlign = 'center';
+            scoreMsg.style.marginTop = '8px';
             chatLog.appendChild(scoreMsg);
             
             // Animate score counter
@@ -1127,9 +1104,8 @@
     chatLog.scrollTop = chatLog.scrollHeight;
     
     let content = `✨ Interview Complete! ✨\n\n`;
-    content += `📊 Average Match Score: ${avgScore}%\n`;
-    content += `Initial Match Score: ${currentMatchScore}%\n\n`;
-    content += `Individual Scores:\n`;
+    content += `📊 Average Match Score: ${avgScore}%\n\n`;
+    content += `Question Scores:\n`;
     questionScores.forEach((score, i) => {
       content += `  Q${i + 1}: ${score}%\n`;
     });
