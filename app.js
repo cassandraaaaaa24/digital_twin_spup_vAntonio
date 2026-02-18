@@ -6,7 +6,7 @@
     splash.innerHTML = `
       <div class="splash-content">
         <div class="splash-logo">✨</div>
-        <div class="splash-text">Welcome to My Resume</div>
+        <div class="splash-text">Welcome to My Digital Twin</div>
         <div class="splash-dots">
           <span class="splash-dot">.</span>
           <span class="splash-dot">.</span>
@@ -28,6 +28,11 @@
   const contentEl = document.getElementById('content');
 
   const resume = window.resumeData;
+
+  // Hidden text measurer used to compute word widths for dynamic bubble sizing
+  const _textMeasurer = document.createElement('span');
+  _textMeasurer.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:pre;padding:0;margin:0;';
+  document.body.appendChild(_textMeasurer);
 
   const sections = [
     { id: 'personal', title: 'Personal Data' },
@@ -795,14 +800,14 @@
         // Update the last message with animated score
         const lastMsg = chatLog.lastChild;
         if (lastMsg) {
-          lastMsg.textContent = `Welcome to the ${jobDetails.title} interview! 🎤\n\n📊 Your Match Score: ${animatedScore}% 🔄`;
+          setMessageContent(lastMsg, `Welcome to the ${jobDetails.title} interview! 🎤\n\n📊 Your Match Score: ${animatedScore}% 🔄`);
         }
         
         if (progress < 1) {
           requestAnimationFrame(animateScore);
         } else {
           // Animation complete, show final message with interpretation
-          lastMsg.textContent = `Welcome to the ${jobDetails.title} interview! 🎤\n\n📊 Your Match Score: ${currentMatchScore}% (${scoreInterpretation})\n\nLet's begin with some interview questions!`;
+          setMessageContent(lastMsg, `Welcome to the ${jobDetails.title} interview! 🎤\n\n📊 Your Match Score: ${currentMatchScore}% (${scoreInterpretation})\n\nLet's begin with some interview questions!`);
           
           // Start the auto-flow interview with question 1
           setTimeout(() => {
@@ -863,85 +868,96 @@
   }
 
   function generateAnswerFromResume(question) {
-    try {
-      const qa = window.resumeData;
-      const qLower = question.toLowerCase();
-      
-      // Helper to get specific certifications details
-      const getCertByKeyword = (keyword) => {
-        if (!qa.certifications || !Array.isArray(qa.certifications)) return 'various technical certifications';
-        const matching = qa.certifications.find(c => {
-          if (typeof c === 'object' && c.desc) {
-            return c.desc.toLowerCase().includes(keyword.toLowerCase());
+    // Asynchronous, non-hardcoded answer generation. Try server first, then fallback to local variation.
+    return (async () => {
+      try {
+        // Prefer the server (OpenAI) if available via /api/chat
+        const serverResp = await queryServer(question);
+        if (serverResp) return serverResp;
+
+        const qa = window.resumeData || {};
+        const qLower = (question || '').toLowerCase();
+
+        // Helpers
+        const getCertByKeyword = (keyword) => {
+          if (!qa.certifications || !Array.isArray(qa.certifications)) return 'relevant certifications';
+          const matching = qa.certifications.find(c => {
+            if (typeof c === 'object' && c.desc) return c.desc.toLowerCase().includes(keyword.toLowerCase());
+            return String(c).toLowerCase().includes(keyword.toLowerCase());
+          });
+          return matching ? (typeof matching === 'object' ? `${matching.title}` : `${matching}`) : `${keyword} certifications`;
+        };
+
+        const getRecentEvent = () => {
+          if (qa.events && qa.events.length > 0) {
+            const evt = qa.events[0];
+            return `${evt.title}${evt.desc ? ' — ' + evt.desc : ''}`;
           }
-          return false;
-        });
-        return matching ? `${matching.title} (${matching.desc})` : `certifications in ${keyword}`;
-      };
-      
-      // Helper to get specific event details
-      const getRecentEvent = () => {
-        if (qa.events && qa.events.length > 0) {
-          const evt = qa.events[0];
-          return `${evt.title} where I ${evt.desc || 'contributed to the experience'}`;
+          return 'industry events and hackathons';
+        };
+
+        const getSkillsSummary = () => {
+          const parts = [];
+          const s = qa.skills || {};
+          if (Array.isArray(s.programmingLanguages)) s.programmingLanguages.slice(0,3).forEach(x => parts.push(typeof x === 'string' ? x : x.lang || x.name));
+          if (Array.isArray(s.frameworksLibraries) && parts.length < 3) s.frameworksLibraries.slice(0,3 - parts.length).forEach(x => parts.push(typeof x === 'string' ? x : x.name));
+          if (parts.length === 0) return 'a range of modern technologies';
+          return parts.join(', ');
+        };
+
+        const getAffiliationInfo = () => {
+          if (!qa.affiliations || qa.affiliations.length === 0) return 'professional groups and projects';
+          const a = qa.affiliations[0];
+          return typeof a === 'object' ? `${a.role || ''} at ${a.organization || ''}`.trim() : String(a);
+        };
+
+        const getCapstoneTitle = () => {
+          const c = qa.education && qa.education.capstone;
+          if (!c) return 'my capstone project';
+          return String(c).split(':')[0];
+        };
+
+        // Build varied sentence fragments
+        const fragments = [];
+        if (/(experience|work|background)/.test(qLower)) {
+          fragments.push(`I gained practical experience during ${qa.education?.degree || 'my studies'} at ${qa.education?.school || 'university'}, working on ${getCapstoneTitle()}.`);
+          fragments.push(`I've also participated in ${getRecentEvent()} which helped me apply learned skills in real projects.`);
+          fragments.push(`I focus on writing maintainable, testable code and follow engineering best practices.`);
         }
-        return 'various industry events';
-      };
-      
-      // Helper to format skills with proficiency
-      const getSkillsSummary = () => {
-        if (!qa.skills || !qa.skills.programmingLanguages) return 'multiple technologies';
-        const languages = Array.isArray(qa.skills.programmingLanguages) ? qa.skills.programmingLanguages : [];
-        const advanced = languages.filter(l => typeof l === 'object' && l.proficiency === 'Advanced');
-        return advanced.map(l => `${l.lang} (${l.useCases})`).slice(0, 3).join(', ') || 'multiple technologies';
-      };
-      
-      // Helper to safely get affiliation role
-      const getAffiliationInfo = () => {
-        if (!qa.affiliations || qa.affiliations.length === 0) return 'my professional roles';
-        const affil = qa.affiliations[0];
-        if (typeof affil === 'object' && affil.role) {
-          return `${affil.role} at ${affil.organization}`;
+        if (/(technical|programming|language|framework|stack|technology)/.test(qLower)) {
+          fragments.push(`My core technologies include ${getSkillsSummary()}.`);
+          fragments.push(`I prioritize readable code, automated tests, and pragmatic design choices.`);
         }
-        return affil;
-      };
-      
-      // Helper to safely get capstone title
-      const getCapstoneTitle = () => {
-        if (!qa.education.capstone) return 'my capstone project';
-        const parts = qa.education.capstone.split(':');
-        return parts.length > 0 ? parts[0].trim() : qa.education.capstone;
-      };
-      
-      const answers = {
-        experience: [
-          `I've gained practical experience through my ${qa.education.degree} at ${qa.education.school}. My capstone project involved ${getCapstoneTitle()}, implementing AI-driven solutions with spatial indexing. I've participated in multiple tech events including ${qa.events[0]?.title}, which provided hands-on exposure to modern development practices. I've undertaken ${getCertByKeyword('AI')} to strengthen my expertise.`,
-        ],
-        technical: [
-          `I'm proficient in multiple technologies including ${getSkillsSummary()}. My capstone required building systems with machine learning and decision support components. I've completed training in modern development practices and gained hands-on experience through industry events and certifications. I focus on writing clean, scalable code following design patterns and SOLID principles.`,
-        ],
-        learning: [
-          `I'm deeply committed to continuous learning. I've undertaken ${getCertByKeyword('AI')} and ${getCertByKeyword('Cybersecurity')} to broaden my technical foundation. My approach is systematic: I study fundamentals, work through hands-on projects, engage with community best practices, and implement what I learn immediately. This has allowed me to master diverse tech stacks rapidly.`,
-        ],
-        motivation: [
-          `I'm genuinely excited about this role because it aligns with my passion for building impactful technology. I've invested significantly in my growth through formal certifications, competitive hackathons, and maintaining strong academic records. I led the ${getCapstoneTitle()} project and continuously advance my expertise in modern development practices. I'm eager to contribute meaningfully to your team.`,
-        ],
-        teamwork: [
-          `I believe collaboration is key to success. Through ${getAffiliationInfo()}, I've developed strong leadership and communication skills. I've worked with diverse teams on various projects and initiatives. I'm comfortable in pair programming sessions, conducting code reviews, and supporting teammates. I'm also open to feedback and actively seek opportunities to help others grow.`,
-        ]
-      };
-      
-      let answerType = 'experience';
-      if (/(technical|technology|programming|framework|language|code)/.test(qLower)) answerType = 'technical';
-      if (/(learn|training|skill|new|approach|growth|development)/.test(qLower)) answerType = 'learning';
-      if (/(interest|motivation|excit|passion|why|interested)/.test(qLower)) answerType = 'motivation';
-      if (/(team|collaborate|work|difficult|conflict|people)/.test(qLower)) answerType = 'teamwork';
-      
-      return answers[answerType][0];
-    } catch (error) {
-      console.error('Error generating answer:', error);
-      return 'I have extensive experience in technology and continuous learning. I focus on applying my skills to solve real-world problems and collaborating effectively with teams.';
-    }
+        if (/(learn|training|cert|course|certification)/.test(qLower)) {
+          fragments.push(`I pursue continuous learning through certifications such as ${getCertByKeyword('AI')}.`);
+          fragments.push(`I learn by building small projects and applying them to larger problems.`);
+        }
+        if (/(motivat|interest|why)/.test(qLower)) {
+          fragments.push(`I'm motivated by building tools that solve real user problems and by learning new paradigms.`);
+          fragments.push(`I enjoy collaborating with cross-functional teams to deliver impact.`);
+        }
+        if (fragments.length === 0) {
+          // generic, mixed reply
+          fragments.push(`I can answer questions about education, skills, certifications, and project experience.`);
+          fragments.push(`Try asking about my technical background, recent projects, or certifications.`);
+        }
+
+        // Shuffle and choose 2-4 fragments to form a non-static, thoughtful reply
+        for (let i = fragments.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [fragments[i], fragments[j]] = [fragments[j], fragments[i]];
+        }
+        const take = Math.min(4, Math.max(2, Math.floor(Math.random() * fragments.length) + 1));
+        const answer = fragments.slice(0, take).join(' ');
+
+        // short thinking delay to avoid immediate canned replies
+        await new Promise(r => setTimeout(r, 350 + Math.random() * 450));
+        return answer;
+      } catch (err) {
+        console.error('generateAnswerFromResume error', err);
+        return 'I have background in several technologies and a commitment to continuous learning; ask me about a specific area and I will elaborate.';
+      }
+    })();
   }
 
   function calculatePerQuestionScore(jobDetails, questionNum) {
@@ -1027,14 +1043,56 @@
     let index = 0;
     element.textContent = '';
     element.classList.add('is-typing');
-    
+    element.style.display = 'inline-block';
+    element.style.transition = 'width 120ms linear';
+
+    // Cache some values for measuring
+    const chatPanelEl = document.getElementById('chatPanel');
+    const maxAllowed = chatPanelEl ? Math.max(120, Math.floor(chatPanelEl.clientWidth * 0.75)) : 600;
+
     const typeChar = () => {
       if (index < text.length) {
         element.textContent += text[index];
         index++;
+
+        // Measure the full current text so the bubble always covers content
+        const soFar = element.textContent;
+
+        // Apply computed font styles to measurer for accurate width
+        try {
+          const cs = window.getComputedStyle(element);
+          _textMeasurer.style.fontSize = cs.fontSize;
+          _textMeasurer.style.fontFamily = cs.fontFamily;
+          _textMeasurer.style.fontWeight = cs.fontWeight;
+          _textMeasurer.style.letterSpacing = cs.letterSpacing;
+          _textMeasurer.style.whiteSpace = 'pre'; // measure without wrapping
+        } catch (e) {}
+
+        _textMeasurer.textContent = soFar;
+        const measured = _textMeasurer.offsetWidth || (soFar.length * 8);
+
+        // Compute horizontal padding from the element's computed style
+        let padding = 28; // fallback
+        try {
+          const cs2 = window.getComputedStyle(element);
+          const pl = parseFloat(cs2.paddingLeft) || 0;
+          const pr = parseFloat(cs2.paddingRight) || 0;
+          padding = pl + pr;
+        } catch (e) {}
+
+        const targetWidth = Math.min(measured + padding, maxAllowed);
+        element.style.width = targetWidth + 'px';
+
         setTimeout(typeChar, speed);
       } else {
+        // finished typing - remove typing state and allow natural width
         element.classList.remove('is-typing');
+        // small delay to allow final width animation
+        setTimeout(() => {
+          element.style.width = '';
+          element.style.transition = '';
+          element.style.display = '';
+        }, 180);
         if (callback) callback();
       }
     };
@@ -1088,7 +1146,7 @@
     
     const question = questions[questionNum - 1];
     
-    setTimeout(() => {
+    setTimeout(async () => {
       showTyping(false);
       
       const qMsg = document.createElement('div');
@@ -1097,17 +1155,20 @@
       chatLog.appendChild(qMsg);
       chatLog.scrollTop = chatLog.scrollHeight;
       
-      setTimeout(() => {
-        const answer = generateAnswerFromResume(question);
+      setTimeout(async () => {
+        const answer = await generateAnswerFromResume(question);
         const qScore = calculatePerQuestionScore(jobDetails, questionNum);
         questionScores.push(qScore);
         
-        const aMsg = document.createElement('div');
-        aMsg.className = 'msg user answer-msg';
+        // create expandable answer message (show short preview, expand on click)
+        const aMsg = createExpandableMsg(answer, 'user', 140);
         chatLog.appendChild(aMsg);
         chatLog.scrollTop = chatLog.scrollHeight;
-        
-        animateTyping(aMsg, answer, 15, () => {
+
+        const previewEl = aMsg.querySelector('.msg-preview') || aMsg;
+        const previewText = (answer.length > 140) ? answer.slice(0, 140).trim() : answer;
+
+        animateTyping(previewEl, previewText, 15, () => {
           setTimeout(() => {
             const scoreMsg = document.createElement('div');
             scoreMsg.className = 'msg bot';
@@ -1159,7 +1220,81 @@
   }
 
   function appendMsg(text, who='bot'){
-    const d = document.createElement('div'); d.className = `msg ${who}`; d.textContent = text; chatLog.appendChild(d); chatLog.scrollTop = chatLog.scrollHeight;
+    const msgEl = createExpandableMsg(text, who);
+    chatLog.appendChild(msgEl);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  function createExpandableMsg(text, who='bot', previewLen = 140) {
+    const el = document.createElement('div'); el.className = `msg ${who}`;
+
+    const preview = document.createElement('div'); preview.className = 'msg-preview';
+    const full = document.createElement('div'); full.className = 'msg-full';
+    full.style.display = 'none';
+
+    if (!text || text.length <= previewLen) {
+      preview.textContent = text;
+      el.appendChild(preview);
+      return el;
+    }
+
+    const short = text.slice(0, previewLen).trim();
+    preview.textContent = short + '\u2026'; // ellipsis
+    // store full text for later reveal
+    full.dataset.full = text;
+
+    const more = document.createElement('div'); more.className = 'read-more'; more.textContent = 'Read more';
+    more.style.color = 'var(--primary)'; more.style.fontSize = '11px'; more.style.marginTop = '6px';
+
+    el.appendChild(preview);
+    el.appendChild(full);
+    el.appendChild(more);
+
+    el.addEventListener('click', function toggleExpanded(e) {
+      // avoid expanding when clicking links or inputs in future
+      if (el.classList.contains('expanded')) {
+        // collapse
+        full.style.display = 'none';
+        preview.style.display = '';
+        more.textContent = 'Read more';
+        el.classList.remove('expanded');
+      } else {
+        // expand: show full text (no typing to keep UX snappy)
+        full.textContent = full.dataset.full || '';
+        full.style.display = '';
+        preview.style.display = 'none';
+        more.textContent = 'Show less';
+        el.classList.add('expanded');
+      }
+      chatLog.scrollTop = chatLog.scrollHeight;
+    });
+
+    return el;
+  }
+
+  // Utility to safely replace the last message content (used by animated score)
+  function setMessageContent(msgEl, text) {
+    if (!msgEl) return;
+    const preview = msgEl.querySelector('.msg-preview');
+    const full = msgEl.querySelector('.msg-full');
+    if (preview && full) {
+      // update both preview and stored full
+      const previewLen = 140;
+      if (text.length <= previewLen) {
+        preview.textContent = text; full.dataset.full = text; full.textContent = '';
+      } else {
+        preview.textContent = text.slice(0, previewLen).trim() + '\u2026';
+        full.dataset.full = text;
+        if (msgEl.classList.contains('expanded')) {
+          full.textContent = text;
+        } else {
+          full.textContent = '';
+        }
+      }
+    } else {
+      // fallback - replace textContent
+      msgEl.textContent = text;
+    }
   }
 
   function showTyping(show){
@@ -1338,7 +1473,7 @@
   populateJobSelector();
 
   // Initialize with default Q&A mode
-  appendMsg("Hello! I'm your resume AI assistant. Ask me anything about your background.", 'bot');
+  appendMsg("Hello! I'm your Digital Twin AI assistant. Ask me anything about your background.", 'bot');
 
   // reposition on resize to avoid clipping
   window.addEventListener('resize', ensurePanelVisible);
