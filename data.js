@@ -206,7 +206,7 @@ const resumeData = {
     }
   ],
   skills: {
-    technicalAreas: [
+    "Technical Areas": [
       { area: "Artificial Intelligence & Machine Learning", level: "Intermediate", examples: "LLM implementation, model training, prompt engineering, AI workflow automation" },
       { area: "Full-Stack Web Development", level: "Advanced", examples: "React, Node.js, SvelteKit, REST API design, responsive design" },
       { area: "Database Management", level: "Advanced", examples: "SQL query optimization, MongoDB aggregations, database design patterns" },
@@ -218,7 +218,7 @@ const resumeData = {
       { area: "Technical Writing & Documentation", level: "Advanced", examples: "API documentation, technical blogs, requirement specifications" },
       { area: "Digital Filmmaking & Media Production", level: "Intermediate", examples: "Video editing, cinematography, audio production, visual storytelling" }
     ],
-    programmingLanguages: [
+    "Programming Languages": [
       { lang: "Python", proficiency: "Advanced", useCases: "Data analysis, AI/ML, automation, web scraping" },
       { lang: "JavaScript/TypeScript", proficiency: "Advanced", useCases: "Frontend development, full-stack web applications, automation" },
       { lang: "C#", proficiency: "Intermediate", useCases: "Desktop applications, game development, backend services" },
@@ -229,7 +229,7 @@ const resumeData = {
       { lang: "Kotlin", proficiency: "Beginner", useCases: "Mobile application development" },
       { lang: "XML & JSON", proficiency: "Advanced", useCases: "Data serialization, API communication" }
     ],
-    frameworksLibraries: [
+    "Frameworks & Libraries": [
       { name: "React", category: "Frontend", details: "Component-based architecture, hooks, state management with Redux/Context API" },
       { name: "Node.js & Express", category: "Backend", details: "RESTful API development, middleware configuration, async/await patterns" },
       { name: "SvelteKit", category: "Full-Stack", details: "Server-side rendering, reactive components, file-based routing" },
@@ -239,14 +239,14 @@ const resumeData = {
       { name: "Tailwind CSS", category: "Frontend", details: "Utility-first approach, custom components, performance optimization" },
       { name: "Webpack & Vite", category: "Build Tools", details: "Module bundling, code splitting, hot module replacement" }
     ],
-    databases: [
+    "Databases": [
       { system: "PostgreSQL", proficiency: "Advanced", features: "Complex queries, ACID compliance, jsonb support" },
       { system: "MySQL", proficiency: "Advanced", features: "Relational queries, indexing, replication" },
       { system: "MongoDB", proficiency: "Intermediate", features: "Document storage, aggregation pipeline, flexible schema" },
       { system: "SQLite", proficiency: "Intermediate", features: "Lightweight deployment, mobile databases" },
       { system: "Redis", proficiency: "Beginner", features: "Caching, session management, pub/sub messaging" }
     ],
-    technicalITSkills: [
+    "Technical IT Skills": [
       { skill: "Git & GitHub", proficiency: "Advanced", details: "Version control, branching strategies, pull requests, collaborative development" },
       { skill: "REST API Design", proficiency: "Advanced", details: "RESTful principles, HTTP methods, status codes, API documentation" },
       { skill: "Object-Oriented Programming", proficiency: "Advanced", details: "Encapsulation, inheritance, polymorphism, SOLID principles" },
@@ -262,7 +262,7 @@ const resumeData = {
       { skill: "Windows Server", proficiency: "Beginner", details: "Active Directory, server administration basics" },
       { skill: "Networking", proficiency: "Intermediate", details: "TCP/IP, DNS, VPNs, network security fundamentals" }
     ],
-    testingQATools: [
+    "Testing Q A Tools": [
       { tool: "Postman", usage: "API testing, collection documentation, automated test suites" },
       { tool: "Jest", usage: "JavaScript unit testing, snapshot testing, mocking" },
       { tool: "Pytest", usage: "Python testing framework, fixtures, parametrized tests" },
@@ -270,18 +270,18 @@ const resumeData = {
       { tool: "SoapUI", usage: "SOAP/REST API testing, load testing" },
       { tool: "Selenium", usage: "Web UI automation, cross-browser testing" }
     ],
-    webDevelopmentPractices: [
+    "Web Development Practices": [
       { practice: "Responsive Design", description: "Mobile-first approach, CSS Grid & Flexbox, media queries for all breakpoints" },
       { practice: "Web Performance Optimization", description: "Image optimization, lazy loading, code splitting, caching strategies" },
       { practice: "User Experience (UX) Design", description: "User research, wireframing, usability testing, accessibility considerations" },
       { practice: "Accessibility (WCAG 2.1)", description: "Semantic HTML, ARIA labels, keyboard navigation, color contrast compliance" },
       { practice: "SEO Best Practices", description: "Meta tags, semantic markup, sitemap optimization, structured data" }
     ],
-    hardwareTools: [
+    "Hardware Tools": [
       { tool: "Arduino", expertise: "Sensor integration, microcontroller programming, IoT prototyping, BLE beacon configuration" },
       { tool: "Raspberry Pi", expertise: "Linux-based computing, GPIO control, networking setup, container deployment" }
     ],
-    toolsPlatforms: [
+    "Tools Platforms": [
       { tool: "Visual Studio Code", usage: "Primary IDE with extensions for debugging, formatting, version control" },
       { tool: "Eclipse IDE", usage: "Java development environment, enterprise application development" },
       { tool: "JetBrains IntelliJ", usage: "Advanced Java/Kotlin development with intelligent code analysis" },
@@ -291,7 +291,7 @@ const resumeData = {
       { tool: "n8n", usage: "Workflow automation, AI-powered business process orchestration" },
       { tool: "Figma", usage: "UI/UX design, prototyping, collaborative design" }
     ],
-    softSkills: [
+    "Soft Skills": [
       { skill: "Problem-Solving", description: "Analytical approach to technical challenges, creative solution design" },
       { skill: "Communication", description: "Technical documentation, presentation skills, cross-team collaboration" },
       { skill: "Teamwork & Collaboration", description: "Pair programming, code reviews, open feedback acceptance" },

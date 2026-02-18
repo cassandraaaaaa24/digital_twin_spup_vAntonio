@@ -228,7 +228,7 @@
           if (Array.isArray(skillList) && skillList.length > 0) {
             const catDiv = document.createElement('div'); catDiv.className = 'skill-category';
             const catTitle = document.createElement('h3'); 
-            catTitle.textContent = category.replace(/([A-Z])/g, ' $1').replace(/^./, s=>s.toUpperCase()).trim();
+            catTitle.textContent = category;
             catTitle.className = 'skill-category-title';
             catDiv.appendChild(catTitle);
             
@@ -1070,8 +1070,7 @@
       if (resume.skills) {
         Object.entries(resume.skills).forEach(([category, skillList]) => {
           if (Array.isArray(skillList) && skillList.length > 0) {
-            const catName = category.replace(/([A-Z])/g, ' $1').replace(/^./, c=>c.toUpperCase()).trim();
-            skillsInfo += `${catName}: ${skillList.join(', ')}\n`;
+            skillsInfo += `${category}: ${skillList.join(', ')}\n`;
           }
         });
       }
