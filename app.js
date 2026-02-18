@@ -1,4 +1,29 @@
 (() => {
+  // Initialize splash screen
+  function initSplashScreen() {
+    const splash = document.createElement('div');
+    splash.className = 'splash-screen';
+    splash.innerHTML = `
+      <div class="splash-content">
+        <div class="splash-logo">✨</div>
+        <div class="splash-text">Welcome to My Resume</div>
+        <div class="splash-dots">
+          <span class="splash-dot">.</span>
+          <span class="splash-dot">.</span>
+          <span class="splash-dot">.</span>
+        </div>
+      </div>
+    `;
+    document.body.insertBefore(splash, document.body.firstChild);
+  }
+  
+  // Show splash screen on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSplashScreen);
+  } else {
+    initSplashScreen();
+  }
+
   const tabsEl = document.getElementById('tabs');
   const contentEl = document.getElementById('content');
 
@@ -82,31 +107,116 @@
       const h = document.createElement('h2'); h.className = 'section-title'; h.textContent = 'Educational Background';
       contentEl.appendChild(h);
       const e = resume.education;
-      const d = document.createElement('div'); d.className = 'field';
-      d.innerHTML = `<strong>Degree:</strong> ${e.degree}<br/><strong>School:</strong> ${e.school} (${e.years})<br/><strong>Capstone:</strong> ${e.capstone}`;
-      contentEl.appendChild(d);
-      const shs = document.createElement('div'); shs.className='field'; shs.innerHTML = `<strong>Senior High:</strong> ${e.shs.school} (${e.shs.years})`; contentEl.appendChild(shs);
-      const jhs = document.createElement('div'); jhs.className='field'; jhs.innerHTML = `<strong>Junior High:</strong> ${e.jhs.school} (${e.jhs.years})`; contentEl.appendChild(jhs);
+      const container = document.createElement('div'); container.className = 'education-container';
+
+      // Degree Card
+      const degreeCard = document.createElement('div'); degreeCard.className = 'education-card';
+      const degreeHeader = document.createElement('div'); degreeHeader.className = 'education-header';
+      const degreeLevel = document.createElement('span'); degreeLevel.className = 'education-level'; degreeLevel.textContent = 'Degree';
+      const degreeYears = document.createElement('span'); degreeYears.className = 'education-period'; degreeYears.textContent = e.years;
+      degreeHeader.appendChild(degreeLevel); degreeHeader.appendChild(degreeYears);
+
+      const degreeField1 = document.createElement('div'); degreeField1.className = 'education-field';
+      degreeField1.innerHTML = `<span class="education-label">Program</span><div class="education-value">${e.degree}</div>`;
+      const degreeField2 = document.createElement('div'); degreeField2.className = 'education-field';
+      degreeField2.innerHTML = `<span class="education-label">School</span><div class="education-value">${e.school}</div>`;
+      const degreeField3 = document.createElement('div'); degreeField3.className = 'education-field';
+      degreeField3.innerHTML = `<span class="education-label">Capstone Project</span><div class="education-value">${e.capstone}</div><div class="education-description">(Uses beacon technology, machine learning algorithms, and proximity-grid spatial indexing for real-time item tracking)</div>`;
+
+      degreeCard.appendChild(degreeHeader); degreeCard.appendChild(degreeField1); degreeCard.appendChild(degreeField2); degreeCard.appendChild(degreeField3);
+      container.appendChild(degreeCard);
+
+      // Senior HS Card
+      const shsCard = document.createElement('div'); shsCard.className = 'education-card';
+      const shsHeader = document.createElement('div'); shsHeader.className = 'education-header';
+      const shsLevel = document.createElement('span'); shsLevel.className = 'education-level'; shsLevel.textContent = 'Senior High';
+      const shsYears = document.createElement('span'); shsYears.className = 'education-period'; shsYears.textContent = e.shs.years;
+      shsHeader.appendChild(shsLevel); shsHeader.appendChild(shsYears);
+
+      const shsField = document.createElement('div'); shsField.className = 'education-field';
+      shsField.innerHTML = `<span class="education-label">School</span><div class="education-value">${e.shs.school}</div>`;
+
+      shsCard.appendChild(shsHeader); shsCard.appendChild(shsField);
+      container.appendChild(shsCard);
+
+      // Junior HS Card
+      const jhsCard = document.createElement('div'); jhsCard.className = 'education-card';
+      const jhsHeader = document.createElement('div'); jhsHeader.className = 'education-header';
+      const jhsLevel = document.createElement('span'); jhsLevel.className = 'education-level'; jhsLevel.textContent = 'Junior High';
+      const jhsYears = document.createElement('span'); jhsYears.className = 'education-period'; jhsYears.textContent = e.jhs.years;
+      jhsHeader.appendChild(jhsLevel); jhsHeader.appendChild(jhsYears);
+
+      const jhsField = document.createElement('div'); jhsField.className = 'education-field';
+      jhsField.innerHTML = `<span class="education-label">School</span><div class="education-value">${e.jhs.school}</div>`;
+
+      jhsCard.appendChild(jhsHeader); jhsCard.appendChild(jhsField);
+      container.appendChild(jhsCard);
+
+      contentEl.appendChild(container);
     }
     if (id === 'certs') {
       const h = document.createElement('h2'); h.className = 'section-title'; h.textContent = 'Certifications';
       contentEl.appendChild(h);
-      const ul = document.createElement('ul'); ul.className='cert-list';
-      resume.certifications.forEach(c => { const li = document.createElement('li'); li.textContent = c; ul.appendChild(li); });
-      contentEl.appendChild(ul);
+      resume.certifications.forEach(c => {
+        const card = document.createElement('div'); card.className = 'education-card';
+        
+        const header = document.createElement('div'); header.className = 'education-header';
+        const title = document.createElement('span'); title.className = 'education-level'; title.textContent = c.title;
+        header.appendChild(title);
+        
+        const field1 = document.createElement('div'); field1.className = 'education-field';
+        field1.innerHTML = `<span class="education-label">Organization</span><div class="education-value">${c.org}</div>`;
+        
+        const field2 = document.createElement('div'); field2.className = 'education-field';
+        field2.innerHTML = `<span class="education-label">Date</span><div class="education-value">${c.date}</div>`;
+        
+        const field3 = document.createElement('div'); field3.className = 'education-field';
+        const descDiv = document.createElement('div');
+        descDiv.className = 'education-description';
+        descDiv.textContent = c.desc || '';
+        field3.appendChild(descDiv);
+        
+        card.appendChild(header);
+        card.appendChild(field1);
+        card.appendChild(field2);
+        card.appendChild(field3);
+        contentEl.appendChild(card);
+      });
     }
     if (id === 'events') {
       const h = document.createElement('h2'); h.className = 'section-title'; h.textContent = 'Seminars / Workshops / Conferences';
       contentEl.appendChild(h);
       resume.events.forEach(ev => {
-        const wrap = document.createElement('div'); wrap.className = 'event';
-        const img = document.createElement('img'); img.src = ev.img; img.alt = ev.title;
-        const meta = document.createElement('div'); meta.className = 'meta';
-        meta.innerHTML = `<strong>${ev.title}</strong><div>${ev.venue}</div><div>${ev.date}</div>`;
-        wrap.appendChild(img); wrap.appendChild(meta);
-        contentEl.appendChild(wrap);
-        // reveal animation
-        setTimeout(()=>wrap.classList.add('visible'), 60);
+        const card = document.createElement('div'); card.className = 'education-card';
+        
+        const header = document.createElement('div'); header.className = 'education-header';
+        const title = document.createElement('span'); title.className = 'event-title'; title.textContent = ev.title;
+        header.appendChild(title);
+        
+        const field1 = document.createElement('div'); field1.className = 'education-field';
+        field1.innerHTML = `<span class="education-label">Venue</span><div class="education-value">${ev.venue}</div>`;
+        
+        const field2 = document.createElement('div'); field2.className = 'education-field';
+        field2.innerHTML = `<span class="education-label">Date</span><div class="education-value">${ev.date}</div>`;
+        
+        const field3 = document.createElement('div'); field3.className = 'education-field';
+        if (ev.img) {
+          const img = document.createElement('img');
+          img.src = ev.img;
+          img.alt = ev.title;
+          img.style.width = '100%';
+          img.style.height = '140px';
+          img.style.objectFit = 'cover';
+          img.style.borderRadius = '8px';
+          img.style.marginTop = '4px';
+          field3.appendChild(img);
+        }
+        
+        card.appendChild(header);
+        card.appendChild(field1);
+        card.appendChild(field2);
+        card.appendChild(field3);
+        contentEl.appendChild(card);
       });
     }
     if (id === 'skills') {
@@ -125,13 +235,17 @@
             const skillList_el = document.createElement('ul'); skillList_el.className = 'skill-list';
             skillList.forEach(skill => {
               const li = document.createElement('li'); 
-              li.textContent = skill;
+              if (typeof skill === 'object') {
+                const skillName = skill.skill || skill.lang || skill.name || skill.system || skill.area || '';
+                const skillLevel = skill.proficiency || skill.level || skill.useCases || skill.features || skill.details || '';
+                li.innerHTML = `<strong>${skillName}</strong><span class="skill-level">${skillLevel}</span>`;
+              } else {
+                li.textContent = skill;
+              }
               li.addEventListener('click', function(e) {
-                // Remove active class from all skill items
                 document.querySelectorAll('.skill-list li').forEach(item => {
                   item.classList.remove('active');
                 });
-                // Add active class to clicked item
                 this.classList.add('active');
               });
               skillList_el.appendChild(li);
@@ -145,10 +259,35 @@
     if (id === 'affiliations') {
       const h = document.createElement('h2'); h.className = 'section-title'; h.textContent = 'Affiliations';
       contentEl.appendChild(h);
-      const ul = document.createElement('ul'); ul.className='aff-list';
-      resume.affiliations.forEach(a => { const li = document.createElement('li'); li.textContent = a; ul.appendChild(li); });
-      contentEl.appendChild(ul);
+      resume.affiliations.forEach(a => {
+        const card = document.createElement('div'); card.className = 'education-card';
+        
+        const header = document.createElement('div'); header.className = 'education-header';
+        const title = document.createElement('span'); title.className = 'education-level'; title.textContent = a.role;
+        const period = document.createElement('span'); period.className = 'education-period'; period.textContent = a.period;
+        header.appendChild(title);
+        header.appendChild(period);
+        
+        const field1 = document.createElement('div'); field1.className = 'education-field';
+        field1.innerHTML = `<span class="education-label">Organization</span><div class="education-value">${a.organization}</div>`;
+        
+        const field2 = document.createElement('div'); field2.className = 'education-field';
+        const descDiv = document.createElement('div');
+        descDiv.className = 'education-description';
+        descDiv.textContent = a.desc || '';
+        field2.appendChild(descDiv);
+        
+        card.appendChild(header);
+        card.appendChild(field1);
+        card.appendChild(field2);
+        contentEl.appendChild(card);
+      });
     }
+    
+    // Trigger entrance animations
+    setTimeout(() => {
+      contentEl.classList.add('fade-in');
+    }, 50);
   }
 
   function toLabel(key){
@@ -157,6 +296,124 @@
 
   createTabs();
   renderSection('personal');
+
+  // Search functionality
+  const navSearch = document.getElementById('navSearch');
+  navSearch.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    if (!query) {
+      renderSection('personal');
+      return;
+    }
+    
+    // Search through all resume data
+    let results = [];
+    
+    // Search in personal data
+    for (let key in resume.personal) {
+      if (String(resume.personal[key]).toLowerCase().includes(query)) {
+        results.push({ section: 'Personal Data', type: key, value: resume.personal[key] });
+      }
+    }
+    
+    // Search in education
+    for (let key in resume.education) {
+      if (typeof resume.education[key] === 'object') {
+        for (let subkey in resume.education[key]) {
+          if (String(resume.education[key][subkey]).toLowerCase().includes(query)) {
+            results.push({ section: 'Education', type: key, value: resume.education[key][subkey] });
+          }
+        }
+      } else {
+        if (String(resume.education[key]).toLowerCase().includes(query)) {
+          results.push({ section: 'Education', type: key, value: resume.education[key] });
+        }
+      }
+    }
+    
+    // Search in certifications
+    resume.certifications.forEach((c, i) => {
+      if (typeof c === 'object') {
+        for (let key in c) {
+          if (String(c[key]).toLowerCase().includes(query)) {
+            results.push({ section: 'Certifications', item: c.title, value: c[key] });
+          }
+        }
+      }
+    });
+    
+    // Search in events
+    resume.events.forEach(ev => {
+      for (let key in ev) {
+        if (String(ev[key]).toLowerCase().includes(query)) {
+          results.push({ section: 'Events', item: ev.title, value: ev[key] });
+        }
+      }
+    });
+    
+    // Search in skills
+    if (resume.skills) {
+      Object.entries(resume.skills).forEach(([category, skillList]) => {
+        if (Array.isArray(skillList)) {
+          skillList.forEach(skill => {
+            if (typeof skill === 'object') {
+              for (let key in skill) {
+                if (String(skill[key]).toLowerCase().includes(query)) {
+                  results.push({ section: 'Skills', category: category, item: skill.skill || skill.name, value: skill[key] });
+                }
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    // Search in affiliations
+    resume.affiliations.forEach(a => {
+      if (typeof a === 'object') {
+        for (let key in a) {
+          if (String(a[key]).toLowerCase().includes(query)) {
+            results.push({ section: 'Affiliations', item: a.role, value: a[key] });
+          }
+        }
+      }
+    });
+    
+    // Display search results
+    contentEl.innerHTML = '';
+    const h = document.createElement('h2'); h.className = 'section-title'; h.textContent = `Search Results (${results.length})`;
+    contentEl.appendChild(h);
+    
+    if (results.length === 0) {
+      const noResults = document.createElement('p');
+      noResults.style.color = 'var(--text-secondary)';
+      noResults.style.padding = '20px';
+      noResults.textContent = `No results found for "${query}"`;
+      contentEl.appendChild(noResults);
+    } else {
+      results.forEach((result, i) => {
+        const card = document.createElement('div'); card.className = 'education-card';
+        const header = document.createElement('div'); header.className = 'education-header';
+        const title = document.createElement('span'); title.className = 'education-level'; title.textContent = result.section;
+        header.appendChild(title);
+        
+        const field = document.createElement('div'); field.className = 'education-field';
+        if (result.item) {
+          field.innerHTML = `<span class="education-label">${result.type || result.category || 'Item'}</span><div class="education-value">${result.item}</div>`;
+        } else if (result.type) {
+          field.innerHTML = `<span class="education-label">${result.type}</span><div class="education-value">${result.value}</div>`;
+        }
+        
+        card.appendChild(header);
+        card.appendChild(field);
+        contentEl.appendChild(card);
+      });
+    }
+    
+    setTimeout(() => {
+      contentEl.classList.add('fade-in');
+    }, 50);
+  });
 
   // Chat functionality (simple keyword-based responder over resume data)
   const chatToggle = document.getElementById('chatToggle');
@@ -757,7 +1014,7 @@
     let el = chatLog.querySelector('.typing');
     if (show) {
       if (!el) {
-        el = document.createElement('div'); el.className = 'typing'; el.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span><span>Thinking…</span>';
+        el = document.createElement('div'); el.className = 'typing'; el.innerHTML = '<span class="typing-dot">.</span><span class="typing-dot">.</span><span class="typing-dot">.</span>';
         chatLog.appendChild(el);
         chatLog.scrollTop = chatLog.scrollHeight;
       }

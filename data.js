@@ -33,7 +33,7 @@ const resumeData = {
     { title: "Certificate of Recognition - SPUP Paskuhan 2025 PaulInnovate", org: "SPUP", date: "2025", desc: "Recognition for innovative project contributions and technical excellence in university innovation initiatives" },
     { title: "Elevating Teaching with the New Updates of GabAI, Your AI Teaching Assistant", org: "Education Technology", date: "2025", desc: "AI applications in education, LLM integration for learning support, and pedagogical approaches to AI-assisted instruction" },
     { title: "Automating Like a Storyteller: Designing System in Arcs", org: "Systems Design Community", date: "2025", desc: "System architecture design patterns, automation workflow design, and narrative-driven API development approaches" },
-    { title: "Certificate of Academic Excellence - President's List", org: "SPUP", date: "2024-2025", desc: "Consistent academic excellence with 3.5+ GPA across all semesters" },
+    { title: "Certificate of Academic Excellence - President's List", org: "SPUP", date: "2024-2025", desc: "Consistent academic excellence with 1.25 average GWA across all semesters" },
     { title: "CITE Cybersecurity Certification", org: "National IT Council", date: "2023", desc: "Cybersecurity fundamentals, threat analysis, and defensive security practices" },
     { title: "Hour of Code Sessions", org: "Code.org", date: "2025", desc: "Community educator for programming fundamentals and CS accessibility initiatives" }
   ],
@@ -202,7 +202,7 @@ const resumeData = {
       role: "President's List", 
       organization: "St. Paul University Philippines", 
       period: "Consistent (2023-Present)",
-      desc: "Consistent academic recognition maintaining 3.5+ GPA across all semesters"
+      desc: "Consistent academic recognition maintaining 1.25 average GWA across all semesters"
     }
   ],
   skills: {
