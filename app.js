@@ -868,96 +868,83 @@
   }
 
   function generateAnswerFromResume(question) {
-    // Asynchronous, non-hardcoded answer generation. Try server first, then fallback to local variation.
-    return (async () => {
-      try {
-        // Prefer the server (OpenAI) if available via /api/chat
-        const serverResp = await queryServer(question);
-        if (serverResp) return serverResp;
+    // Generate conversational, varied interview answers that address the specific question
+    const qa = window.resumeData || {};
+    const qLower = (question || '').toLowerCase();
 
-        const qa = window.resumeData || {};
-        const qLower = (question || '').toLowerCase();
+    const answers = [];
 
-        // Helpers
-        const getCertByKeyword = (keyword) => {
-          if (!qa.certifications || !Array.isArray(qa.certifications)) return 'relevant certifications';
-          const matching = qa.certifications.find(c => {
-            if (typeof c === 'object' && c.desc) return c.desc.toLowerCase().includes(keyword.toLowerCase());
-            return String(c).toLowerCase().includes(keyword.toLowerCase());
-          });
-          return matching ? (typeof matching === 'object' ? `${matching.title}` : `${matching}`) : `${keyword} certifications`;
-        };
+    // Experience with technologies
+    if (/(experience with|worked with|familiar with|proficiency|expertise in)/i.test(question)) {
+      const langs = qa.skills?.programmingLanguages || [];
+      const frameworks = qa.skills?.frameworksLibraries || [];
+      const langNames = langs.slice(0, 4).map(s => typeof s === 'string' ? s : s.lang || s.name || '').filter(Boolean).join(', ');
+      const frameworkNames = frameworks.slice(0, 3).map(s => typeof s === 'string' ? s : s.name || '').filter(Boolean).join(', ');
+      
+      answers.push(`I have hands-on experience with ${langNames || 'multiple programming languages'}. I've worked extensively with frameworks like ${frameworkNames || 'modern web frameworks'} in various projects. I'm comfortable picking up new technologies when needed and have a track record of learning quickly.`);
+      answers.push(`I work primarily with ${langNames || 'Python, JavaScript, and similar languages'}. Beyond just knowing the syntax, I focus on writing clean, maintainable code. I've applied these technologies in real projects and actively seek opportunities to expand my toolkit.`);
+    }
 
-        const getRecentEvent = () => {
-          if (qa.events && qa.events.length > 0) {
-            const evt = qa.events[0];
-            return `${evt.title}${evt.desc ? ' — ' + evt.desc : ''}`;
-          }
-          return 'industry events and hackathons';
-        };
+    // Technical background / Tell me about yourself
+    if (/(tell me about|background|experience|who are you)/i.test(question)) {
+      answers.push(`I'm currently pursuing a ${qa.education?.degree} at ${qa.education?.school}. I have a strong foundation in software development with hands-on experience through my capstone project on beacon-based item tracking using AI. I've also completed several certifications in modern technologies and actively participate in hackathons and tech communities.`);
+      answers.push(`I'm an IT student with a passion for building practical solutions. Beyond academics, I'm experienced in ${qa.skills?.programmingLanguages?.slice(0, 2).map(s => typeof s === 'string' ? s : s.lang || s.name).join(' and ')}, and I've worked on projects combining machine learning with real-world applications. I'm driven by continuous learning and contributing to the tech community.`);
+    }
 
-        const getSkillsSummary = () => {
-          const parts = [];
-          const s = qa.skills || {};
-          if (Array.isArray(s.programmingLanguages)) s.programmingLanguages.slice(0,3).forEach(x => parts.push(typeof x === 'string' ? x : x.lang || x.name));
-          if (Array.isArray(s.frameworksLibraries) && parts.length < 3) s.frameworksLibraries.slice(0,3 - parts.length).forEach(x => parts.push(typeof x === 'string' ? x : x.name));
-          if (parts.length === 0) return 'a range of modern technologies';
-          return parts.join(', ');
-        };
+    // Problem-solving / Technical challenges
+    if (/(approach|solve|problem|challenge|difficult|handle)/i.test(question)) {
+      answers.push(`When facing a technical challenge, I start by understanding the requirements clearly. I break down the problem into manageable parts, research potential solutions, and prototype my approach before implementation. I'm not afraid to ask for help when needed and I believe in documenting my solutions for future reference.`);
+      answers.push(`I approach technical problems systematically. First, I analyze what needs to be solved, then I consider different approaches and their trade-offs. I prioritize writing clean code and testing thoroughly. In my capstone project, I faced complex challenges with spatial indexing and machine learning integration, which taught me the value of planning before coding.`);
+    }
 
-        const getAffiliationInfo = () => {
-          if (!qa.affiliations || qa.affiliations.length === 0) return 'professional groups and projects';
-          const a = qa.affiliations[0];
-          return typeof a === 'object' ? `${a.role || ''} at ${a.organization || ''}`.trim() : String(a);
-        };
+    // Learning and growth
+    if (/(learn|training|growth|develop|improve|skill|certification)/i.test(question)) {
+      const certCount = qa.certifications?.length || 0;
+      const recentCerts = qa.certifications?.slice(0, 2).map(c => c.title).join(', ');
+      answers.push(`I'm committed to continuous learning. I've completed ${certCount} certifications across AI, web development, and automation. I believe learning comes from multiple sources—formal training, hands-on projects, and community engagement. I regularly attend workshops and hackathons to stay current with industry trends.`);
+      answers.push(`I learn best through practical application. While I pursue certifications like ${recentCerts}, I also learn significantly from tackling real projects and collaborating with others. I follow industry blogs, participate in tech communities, and always look for opportunities to apply new knowledge.`);
+    }
 
-        const getCapstoneTitle = () => {
-          const c = qa.education && qa.education.capstone;
-          if (!c) return 'my capstone project';
-          return String(c).split(':')[0];
-        };
+    // Interest in role / Motivation
+    if (/(interest|why|motivated|why this role|appeal)/i.test(question)) {
+      answers.push(`I'm genuinely excited about roles that combine problem-solving with innovation. What attracts me is the opportunity to work on meaningful projects and contribute to a team where I can grow. I'm particularly interested in companies that value continuous learning and have a strong engineering culture.`);
+      answers.push(`I'm motivated by solving real-world problems with technology. The opportunity to work on projects that matter and collaborate with talented developers is what drives me. I'm looking for an environment where I can contribute my skills while constantly learning and pushing my boundaries.`);
+    }
 
-        // Build varied sentence fragments
-        const fragments = [];
-        if (/(experience|work|background)/.test(qLower)) {
-          fragments.push(`I gained practical experience during ${qa.education?.degree || 'my studies'} at ${qa.education?.school || 'university'}, working on ${getCapstoneTitle()}.`);
-          fragments.push(`I've also participated in ${getRecentEvent()} which helped me apply learned skills in real projects.`);
-          fragments.push(`I focus on writing maintainable, testable code and follow engineering best practices.`);
-        }
-        if (/(technical|programming|language|framework|stack|technology)/.test(qLower)) {
-          fragments.push(`My core technologies include ${getSkillsSummary()}.`);
-          fragments.push(`I prioritize readable code, automated tests, and pragmatic design choices.`);
-        }
-        if (/(learn|training|cert|course|certification)/.test(qLower)) {
-          fragments.push(`I pursue continuous learning through certifications such as ${getCertByKeyword('AI')}.`);
-          fragments.push(`I learn by building small projects and applying them to larger problems.`);
-        }
-        if (/(motivat|interest|why)/.test(qLower)) {
-          fragments.push(`I'm motivated by building tools that solve real user problems and by learning new paradigms.`);
-          fragments.push(`I enjoy collaborating with cross-functional teams to deliver impact.`);
-        }
-        if (fragments.length === 0) {
-          // generic, mixed reply
-          fragments.push(`I can answer questions about education, skills, certifications, and project experience.`);
-          fragments.push(`Try asking about my technical background, recent projects, or certifications.`);
-        }
+    // Dealing with gaps
+    if (/(don't have|lack|gap|weak|unfamiliar|new to|haven't used)/i.test(question)) {
+      answers.push(`If there are technologies I'm not familiar with, I see it as an opportunity to learn. I've built a foundation that allows me to pick up new tools and frameworks quickly. My capstone project required learning several technologies I had no prior experience with, which reinforced my ability to self-teach effectively.`);
+      answers.push(`Skill gaps don't intimidate me—they excite me. I have a solid foundation in problem-solving and software development fundamentals, which means I can learn any specific technology needed. I've consistently worked on projects that pushed me beyond my comfort zone, which is where the real growth happens.`);
+    }
 
-        // Shuffle and choose 2-4 fragments to form a non-static, thoughtful reply
-        for (let i = fragments.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [fragments[i], fragments[j]] = [fragments[j], fragments[i]];
-        }
-        const take = Math.min(4, Math.max(2, Math.floor(Math.random() * fragments.length) + 1));
-        const answer = fragments.slice(0, take).join(' ');
+    // Project experience
+    if (/(project|built|created|developed|worked on)/i.test(question)) {
+      const evt = qa.events?.slice(0, 1)[0];
+      const capsuleTitle = qa.education?.capstone?.split(':')[0].trim();
+      answers.push(`My most significant project is my capstone: "${capsuleTitle}". This involved implementing beacon technology, machine learning algorithms, and complex spatial indexing for real-time item tracking. Beyond that, I've participated in ${evt?.title || 'various hackathons'} where I applied my skills to solve real problems under time constraints.`);
+      answers.push(`I've worked on several projects that challenged me technically. My capstone project involved ${capsuleTitle}, combining multiple technologies. I've also participated in tech events and hackathons, where I collaborated with others to deliver functional solutions quickly. These experiences taught me valuable lessons about code quality, teamwork, and time management.`);
+    }
 
-        // short thinking delay to avoid immediate canned replies
-        await new Promise(r => setTimeout(r, 350 + Math.random() * 450));
-        return answer;
-      } catch (err) {
-        console.error('generateAnswerFromResume error', err);
-        return 'I have background in several technologies and a commitment to continuous learning; ask me about a specific area and I will elaborate.';
-      }
-    })();
+    // Experience level alignment
+    if (/(senior|junior|level|years|fresh|early career)/i.test(question)) {
+      answers.push(`I'm early in my career but I have substantial practical experience through my academic projects, certifications, and community involvement. My capstone project and hackathon participation have given me real-world experience that goes beyond just studying. I'm eager to grow and contribute at a higher level.`);
+      answers.push(`While I'm developing my career, I've built a solid foundation through diverse experiences. My education in IT, hands-on projects, and industry certifications have prepared me well. I'm at a point where I'm ready to take on more responsibility and contribute meaningfully to a professional team.`);
+    }
+
+    // Teamwork and collaboration
+    if (/(team|collaborate|work with|communicate|community)/i.test(question)) {
+      answers.push(`I believe great code happens in great teams. I'm active in tech communities, which has taught me the value of collaboration and knowledge sharing. In my projects, I focus on clear communication and writing code that others can understand and build upon. I'm always open to feedback and learning from my peers.`);
+      answers.push(`I'm passionate about community and collaboration. I actively participate in tech communities and hackathons, which has taught me how to work effectively with others. I prioritize clear communication about code and ideas, and I genuinely enjoy when team members challenge my thinking.`);
+    }
+
+    // Fallback varied responses
+    if (answers.length === 0) {
+      answers.push(`That's a great question. Based on my experience and current focus, I believe my foundation in ${qa.skills?.programmingLanguages?.slice(0, 1).map(s => typeof s === 'string' ? s : s.lang).join('')} along with my commitment to continuous learning makes me well-suited for challenges in this space. I'm excited about opportunities to apply and expand my knowledge.`);
+      answers.push(`I approach this by drawing on my background in ${qa.education?.degree} and my practical experience with various technologies. I'm confident in my ability to contribute and grow with the right team and opportunities.`);
+    }
+
+    // Return random answer from the array to provide variety
+    return answers[Math.floor(Math.random() * answers.length)];
   }
 
   function calculatePerQuestionScore(jobDetails, questionNum) {
@@ -971,32 +958,42 @@
       
       let baseScore = 0;
       
-      // Distribute scores across questions - more nuanced approach
+      // Distribute scores across questions based on resume strength in each area
       switch(questionNum) {
         case 1: 
-          // Q1: Technical background - focus on skills + education
-          baseScore = (skillScore * 0.6) + (educationScore * 0.4);
+          // Q1: Technical background - weighted heavily on skill match + education
+          baseScore = (skillScore * 0.5) + (educationScore * 0.3) + (certScore * 0.2);
           break;
         case 2: 
-          // Q2: Interest in role - focus on project experience + skills
-          baseScore = (projectScore * 0.6) + (skillScore * 0.4);
+          // Q2: Interest in role - focus on project experience and motivation alignment
+          baseScore = (projectScore * 0.4) + (skillScore * 0.35) + (certScore * 0.25);
           break;
         case 3: 
-          // Q3: Learning approach - focus on certifications + projects
-          baseScore = (certScore * 0.5) + (projectScore * 0.5);
+          // Q3: Learning approach - focus on certifications + demonstrated learning (projects)
+          baseScore = (certScore * 0.6) + (projectScore * 0.25) + (skillScore * 0.15);
           break;
         case 4: 
-          // Q4: Experience with tech stack - focus on skills + certs
-          baseScore = (skillScore * 0.7) + (certScore * 0.3);
+          // Q4: Experience with tech stack - focus on skills + certifications
+          baseScore = (skillScore * 0.65) + (certScore * 0.25) + (levelScore * 0.1);
           break;
         case 5: 
-          // Q5: Overall fit - weighted average of all factors
-          baseScore = (skillScore * 0.4) + (levelScore * 0.2) + (projectScore * 0.2) + (certScore * 0.2);
+          // Q5: Overall fit - weighted average of all factors for holistic assessment
+          baseScore = (skillScore * 0.3) + (levelScore * 0.25) + (projectScore * 0.2) + (certScore * 0.15) + (educationScore * 0.1);
           break;
       }
       
-      // Return score between 25-92 for realism
-      return Math.min(Math.max(Math.round(baseScore), 25), 92);
+      // Apply experience level variance (junior developers can score well on specific areas)
+      const experienceMultiplier = getResumeExperienceLevel() === 1 ? 0.85 : 1.0;
+      let finalScore = baseScore * experienceMultiplier;
+      
+      // Add small random variance (±5%) to avoid too-perfect scores
+      const variance = (Math.random() * 10) - 5;
+      finalScore += variance;
+      
+      // Return score between 35-90 for realistic range (unlikely to be 90+ without more experience)
+      const minScore = getResumeExperienceLevel() === 1 ? 35 : 40;
+      const maxScore = currentMatchScore >= 70 ? 88 : 82;
+      return Math.min(Math.max(Math.round(finalScore), minScore), maxScore);
     } catch (error) {
       console.error('Error calculating question score:', error);
       return 60;
@@ -1039,60 +1036,20 @@
     return jobSkillsList.length > 0 ? (skillMatches / jobSkillsList.length) * 100 : 50;
   }
 
-  function animateTyping(element, text, speed = 20, callback = null) {
+  function animateTyping(element, text, speed = 12, callback = null) {
     let index = 0;
     element.textContent = '';
     element.classList.add('is-typing');
-    element.style.display = 'inline-block';
-    element.style.transition = 'width 120ms linear';
-
-    // Cache some values for measuring
-    const chatPanelEl = document.getElementById('chatPanel');
-    const maxAllowed = chatPanelEl ? Math.max(120, Math.floor(chatPanelEl.clientWidth * 0.75)) : 600;
+    element.style.display = 'block';
 
     const typeChar = () => {
       if (index < text.length) {
         element.textContent += text[index];
         index++;
-
-        // Measure the full current text so the bubble always covers content
-        const soFar = element.textContent;
-
-        // Apply computed font styles to measurer for accurate width
-        try {
-          const cs = window.getComputedStyle(element);
-          _textMeasurer.style.fontSize = cs.fontSize;
-          _textMeasurer.style.fontFamily = cs.fontFamily;
-          _textMeasurer.style.fontWeight = cs.fontWeight;
-          _textMeasurer.style.letterSpacing = cs.letterSpacing;
-          _textMeasurer.style.whiteSpace = 'pre'; // measure without wrapping
-        } catch (e) {}
-
-        _textMeasurer.textContent = soFar;
-        const measured = _textMeasurer.offsetWidth || (soFar.length * 8);
-
-        // Compute horizontal padding from the element's computed style
-        let padding = 28; // fallback
-        try {
-          const cs2 = window.getComputedStyle(element);
-          const pl = parseFloat(cs2.paddingLeft) || 0;
-          const pr = parseFloat(cs2.paddingRight) || 0;
-          padding = pl + pr;
-        } catch (e) {}
-
-        const targetWidth = Math.min(measured + padding, maxAllowed);
-        element.style.width = targetWidth + 'px';
-
         setTimeout(typeChar, speed);
       } else {
-        // finished typing - remove typing state and allow natural width
+        // finished typing
         element.classList.remove('is-typing');
-        // small delay to allow final width animation
-        setTimeout(() => {
-          element.style.width = '';
-          element.style.transition = '';
-          element.style.display = '';
-        }, 180);
         if (callback) callback();
       }
     };
@@ -1155,8 +1112,9 @@
       chatLog.appendChild(qMsg);
       chatLog.scrollTop = chatLog.scrollHeight;
       
-      setTimeout(async () => {
-        const answer = await generateAnswerFromResume(question);
+      setTimeout(() => {
+        // Generate answer based on the specific question
+        const answer = generateAnswerFromResume(question);
         const qScore = calculatePerQuestionScore(jobDetails, questionNum);
         questionScores.push(qScore);
         
@@ -1168,7 +1126,7 @@
         const previewEl = aMsg.querySelector('.msg-preview') || aMsg;
         const previewText = (answer.length > 140) ? answer.slice(0, 140).trim() : answer;
 
-        animateTyping(previewEl, previewText, 15, () => {
+        animateTyping(previewEl, previewText, 12, () => {
           setTimeout(() => {
             const scoreMsg = document.createElement('div');
             scoreMsg.className = 'msg bot';
@@ -1216,7 +1174,7 @@
       content += `  Q${i + 1}: ${score}%\n`;
     });
     
-    animateTyping(summaryMsg, content, 15);
+    animateTyping(summaryMsg, content, 12);
   }
 
   function appendMsg(text, who='bot'){
@@ -1301,12 +1259,23 @@
     let el = chatLog.querySelector('.typing');
     if (show) {
       if (!el) {
-        el = document.createElement('div'); el.className = 'typing'; el.innerHTML = '<span class="typing-dot">.</span><span class="typing-dot">.</span><span class="typing-dot">.</span>';
+        el = document.createElement('div');
+        el.className = 'typing';
+        el.innerHTML = `
+          <div class="typing-spinner">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        `;
         chatLog.appendChild(el);
         chatLog.scrollTop = chatLog.scrollHeight;
       }
     } else {
-      if (el) el.remove();
+      if (el) {
+        el.style.animation = 'fadeOut 0.2s ease-out forwards';
+        setTimeout(() => el.remove(), 200);
+      }
     }
   }
 
@@ -1347,32 +1316,56 @@
   function answerQuery(q){
     const s = q.toLowerCase();
     // personal
-    if (/(birth|born|birthplace|birth date|birthday)/.test(s)) return `Birth Date: ${resume.personal.birthDate}; Birthplace: ${resume.personal.birthplace}`;
-    if (/(email|e-mail|contact)/.test(s)) return `Email: ${resume.personal.email}; Address: ${resume.personal.address}`;
-    if (/(degree|studying|education|capstone)/.test(s)) return `Degree: ${resume.education.degree} at ${resume.education.school} (${resume.education.years}). Capstone: ${resume.education.capstone}`;
-    if (/(certif|certificate)/.test(s)) return `There are ${resume.certifications.length} certifications. Ask "list certifications" to see them.`;
-    if (/list certifications/.test(s)) return resume.certifications.join('\n');
-    if (/(skill|technical|programming|framework|language)/.test(s)) {
-      let skillsInfo = 'Here are my skills:\n\n';
+    if (/(birth|born|birthplace|birth date|birthday)/.test(s)) return `I was born on ${resume.personal.birthDate} in ${resume.personal.birthplace}. It's a wonderful place to grow up.`;
+    if (/(email|e-mail|contact|reach)/.test(s)) return `You can reach me at ${resume.personal.email}. I'm currently based in ${resume.personal.address}.`;
+    if (/(degree|studying|education|capstone|school)/.test(s)) {
+      const capsuleTitle = resume.education.capstone.split(':')[0].trim();
+      return `I'm pursuing a ${resume.education.degree} at ${resume.education.school} (${resume.education.years}). My capstone project, "${capsuleTitle}", involves beacon technology and machine learning for tracking items. I'm really excited about it!`;
+    }
+    if (/(certif|certificate|credential|training)/.test(s)) {
+      if (/list|all/.test(s)) {
+        const certCount = resume.certifications.length;
+        const recentCerts = resume.certifications.slice(0, 3).map(c => c.title).join(', ');
+        return `I've completed ${certCount} certifications across AI, web development, cybersecurity, and automation. Some recent ones include: ${recentCerts}. I'm committed to continuous learning!`;
+      }
+      return `I have various certifications in AI, automation, web frameworks, and cybersecurity. I believe in staying updated with the latest technologies and industry best practices.`;
+    }
+    if (/(skill|technical|programming|framework|language|tech stack)/.test(s)) {
+      let skillsInfo = 'I work with several technologies:\n\n';
       if (resume.skills) {
         Object.entries(resume.skills).forEach(([category, skillList]) => {
           if (Array.isArray(skillList) && skillList.length > 0) {
-            skillsInfo += `${category}: ${skillList.join(', ')}\n`;
+            const skills = skillList.map(s => typeof s === 'string' ? s : s.lang || s.name || s.skill || '').filter(Boolean).join(', ');
+            if (skills) skillsInfo += `**${category}:** ${skills}\n\n`;
           }
         });
       }
-      return skillsInfo;
+      return skillsInfo || `I'm proficient in various programming languages, frameworks, and tools. I enjoy learning new technologies and applying them to real-world problems.`;
     }
-    if (/(affiliat|organization|member)/.test(s)) return resume.affiliations.join('\n');
+    if (/(affiliat|organization|member|group|role|community)/.test(s)) {
+      if (resume.affiliations && resume.affiliations.length > 0) {
+        const allAff = resume.affiliations.map(a => `${a.role} at ${a.organization}`).join(', ');
+        return `I'm involved with several organizations: ${allAff}. These opportunities allow me to give back to the tech community and collaborate with talented people.`;
+      }
+      return `I'm actively involved in professional tech communities and organizations where I contribute and collaborate with other developers.`;
+    }
     // events by title
-    for(const ev of resume.events){ if (s.includes(ev.title.toLowerCase().slice(0,20))) return `${ev.title} — ${ev.venue} (${ev.date})`; }
-    // events general
-    if (/(event|seminar|workshop|conference)/.test(s)) {
-      return `I can list events or show details. Ask e.g. "list events" or "show event SITE Film Festival 2025".`;
+    for(const ev of resume.events){ 
+      if (s.includes(ev.title.toLowerCase().slice(0,20))) {
+        return `I attended "${ev.title}" at ${ev.venue} on ${ev.date}. It was a great experience where I ${ev.desc ? ev.desc.toLowerCase() : 'learned and collaborated with other developers'}.`;
+      }
     }
-    if (/list events/.test(s)) return resume.events.map(e=>`${e.title} — ${e.date}`).join('\n');
+    // events general
+    if (/(event|seminar|workshop|conference|hackathon|attend)/.test(s)) {
+      if (/list|all/.test(s)) {
+        const eventCount = resume.events.length;
+        const recentEvents = resume.events.slice(0, 3).map(e => e.title).join(', ');
+        return `I've attended ${eventCount} events and conferences! Some recent ones include ${recentEvents}. These opportunities to network and learn from the community are invaluable.`;
+      }
+      return `I regularly attend conferences, workshops, and hackathons. These events help me stay connected with the tech community and improve my skills.`;
+    }
 
-    return "I can answer questions about personal data, education, certifications, events, skills, and affiliations. Try: \"What's my degree?\" or \"List events\".";
+    return `Feel free to ask me about my education, skills, certifications, projects, events, or anything else about my professional background. I'm happy to chat!`;
   }
 
   async function queryServer(message){

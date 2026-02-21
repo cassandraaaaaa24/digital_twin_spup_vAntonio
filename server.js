@@ -181,13 +181,92 @@ app.post('/api/search', async (req, res) => {
   });
 });
 
+/**
+ * First-person, conversational response generator based on resume data
+ * Sounds natural and human-like while remaining professional
+ */
+function smartResumeResponder(message) {
+  const resume = require('./data.js').resumeData;
+  const q = message.toLowerCase();
+
+  // Check specific patterns for quick matches
+  if (/(birth|born|birthday|age|when were you born)/.test(q)) {
+    return `I was born on ${resume.personal.birthDate} in ${resume.personal.birthplace}. It's a beautiful city in Cagayan.`;
+  }
+  
+  if (/(email|contact|reach|how can i contact|how to reach)/.test(q)) {
+    return `You can reach me at ${resume.personal.email}. I'm currently based in ${resume.personal.address}, Philippines.`;
+  }
+  
+  if (/(degree|education|school|studying|what are you studying|background|field)/.test(q)) {
+    const capstoneTitle = resume.education.capstone.split(':')[0].trim();
+    return `I'm pursuing a ${resume.education.degree} at ${resume.education.school}. Right now, I'm working on my capstone project called "${capstoneTitle}", which involves beacon technology and machine learning for item tracking. It's been an exciting journey combining different technologies I've learned.`;
+  }
+  
+  if (/(list certifications|all certifications|certifications you have)/.test(q)) {
+    const certs = resume.certifications.slice(0, 5).map(c => c.title).join(', ');
+    return `I've completed quite a few certifications focusing on AI, web development, and cybersecurity. Some of my recent ones include ${certs}, and several others. I'm always looking to expand my knowledge in emerging technologies like AI and automation.`;
+  }
+  
+  if (/(certif|training|credential|qualification|what certifications)/.test(q)) {
+    const cert = resume.certifications[0];
+    return `One of my recent certifications is "${cert.title}" from ${cert.org} in ${cert.date}. The course covered ${cert.desc}. I find it valuable to continuously learn and stay updated with industry standards.`;
+  }
+  
+  if (/(event|conference|seminar|workshop|hackathon|what events|attended)/.test(q)) {
+    if (/list|all|show/.test(q)) {
+      const eventList = resume.events.slice(0, 3).map(e => e.title).join(', ');
+      return `I've attended quite a few events and conferences. Some notable ones include ${eventList}, and others. I really value these opportunities to network, learn from industry experts, and apply my skills in real-world challenges like hackathons.`;
+    }
+    const evt = resume.events[0];
+    return `I recently attended "${evt.title}" at ${evt.venue} in ${evt.date}. It was a great opportunity to ${evt.desc ? evt.desc.toLowerCase() : 'collaborate and learn with other developers'}. These kinds of events really help me grow both technically and professionally.`;
+  }
+  
+  if (/(skill|technical|programming|language|framework|technology|what can you code|what languages)/.test(q)) {
+    const langs = resume.skills?.programmingLanguages || [];
+    const frameworks = resume.skills?.frameworksLibraries || [];
+    const tech = resume.skills?.technicalITSkills || [];
+    
+    const langNames = langs.slice(0, 4).map(s => typeof s === 'string' ? s : s.lang || s.name || '').filter(Boolean).join(', ');
+    const frameworkNames = frameworks.slice(0, 3).map(s => typeof s === 'string' ? s : s.name || '').filter(Boolean).join(', ');
+    const techNames = tech.slice(0, 2).map(s => typeof s === 'string' ? s : s.skill || s.name || '').filter(Boolean).join(', ');
+    
+    return `I work with several programming languages including ${langNames || 'Python, JavaScript, and others'}. I'm experienced with frameworks like ${frameworkNames || 'React, Node.js, and more'}. I also have expertise in ${techNames || 'web development, system design, and problem-solving'}. I enjoy learning new technologies and applying them to solve real-world problems.`;
+  }
+  
+  if (/(affiliation|member|organization|group|role|team|community|where do you work)/.test(q)) {
+    if (resume.affiliations && resume.affiliations.length > 0) {
+      const allAff = resume.affiliations.map(a => `${a.role} at ${a.organization}`).join(', ');
+      return `I'm involved with several organizations and communities. Currently, I serve as ${allAff}. These roles allow me to contribute to the tech community and collaborate with talented individuals on meaningful projects.`;
+    }
+    return `I'm actively involved in professional tech communities and organizations where I collaborate with other developers and contribute to various initiatives. These connections have been invaluable to my growth.`;
+  }
+  
+  if (/(experience|background|tell me about yourself|who are you)/.test(q)) {
+    return `I'm an IT student at ${resume.education.school} passionate about technology, innovation, and artificial intelligence. I'm actively involved in tech communities, regularly attend hackathons and conferences, and have worked on several projects including my capstone project on beacon-based item tracking with AI. I believe in continuous learning and staying updated with emerging technologies.`;
+  }
+  
+  if (/(motivation|interest|why|passionate)/.test(q)) {
+    return `I'm motivated by solving real-world problems with technology. I enjoy the intersection of creativity and technical problem-solving, whether it's building applications, working with AI, or contributing to the developer community. The tech industry evolves so fast, and I'm genuinely excited to be part of that journey.`;
+  }
+
+  // Default helpful response
+  return `Feel free to ask me about my education, technical skills, certifications, projects I've worked on, events I've attended, or anything else about my professional background. I'm happy to discuss!`;
+}
+
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body || {};
   if (!message) return res.status(400).json({ error: 'missing message' });
 
+  // Try fast local resume-based response FIRST (instant, no API wait)
+  const fastLocalResponse = smartResumeResponder(message);
+  if (fastLocalResponse) {
+    return res.json({ reply: fastLocalResponse });
+  }
+
   let resumeContext = '';
 
-  // Search Upstash database for relevant resume information
+  // Search Upstash database for relevant resume information (if available)
   if (upstashIndex) {
     try {
       const searchResults = await upstashIndex.query(
@@ -205,7 +284,7 @@ app.post('/api/chat', async (req, res) => {
           .slice(0, 8);
         
         if (contextItems.length > 0) {
-          resumeContext = `\n\nRelevant resume information:\n${contextItems.map((item, i) => `• ${item}`).join('\n')}`;
+          resumeContext = `\n\nDetailedd background: ${contextItems.slice(0, 3).join('; ')}`;
         }
       }
     } catch (err) {
@@ -213,48 +292,43 @@ app.post('/api/chat', async (req, res) => {
     }
   }
 
-  const systemPrompt = `You are a friendly and knowledgeable personal AI assistant for Jacinto Gabriel A. Tong. 
+  const systemPrompt = `You are Jacinto Gabriel A. Tong. You are speaking about yourself in first person.
 
-You know Jacinto well! He's an Information Technology student from St. Paul University Philippines with a passion for technology, innovation, and AI. He's actively involved in various tech communities and has participated in numerous events and hackathons. He's creative, driven, and continuously learning.
+About me:
+- I'm an IT student at St. Paul University Philippines pursuing a Bachelor of Science in Information Technology
+- My capstone project: "Beaconet" - using beacon technology, machine learning, and spatial indexing for real-time item tracking
+- I'm passionate about AI, automation, and solving real-world problems with technology
+- I actively participate in tech communities, hackathons, and conferences
+- I have certifications in AI Fundamentals (IBM), SvelteKit, cybersecurity, n8n automation, and others
+- I'm driven by continuous learning and staying updated with emerging technologies
 
-When answering questions:
-- Speak as if you know Jacinto personally. Use a warm, friendly, and conversational tone
-- Be enthusiastic about his achievements and projects
-- Share details about his education, certifications, events, and affiliations with pride
-- Add personality and genuine warmth to your responses - make them feel conversational, not robotic
-- Use the provided resume context to give accurate, specific answers
-- If Jacinto's been to an event or earned a certificate, share it with enthusiasm!
-- If you don't have information, politely say "I don't have those details about Jacinto, but I'd be happy to help with what I do know!"
-- Keep responses friendly and engaging while being concise${resumeContext}`;
+How I communicate:
+- Always speak in first person - use "I", "me", "my"
+- Be conversational and natural, like talking to someone directly
+- Show genuine enthusiasm about my projects and achievements
+- Be professional but warm and approachable
+- Don't just list facts - weave them into natural conversation
+- When discussing my background, explain the context and why it matters to me
+- Keep responses thoughtful and engaging, not overly long
+- Let my passion for technology and learning come through
+- If asked something I don't have details about, admit it naturally
 
-  // Try Ollama first (local, no API key needed)
-  try {
-    const resp = await fetch('http://localhost:11434/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama3.2',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        stream: false
-      })
-    });
-    if (resp.ok) {
-      const j = await resp.json();
-      const reply = j?.message?.content || 'No response from Ollama';
-      return res.json({ reply });
-    }
-  } catch (err) {
-    console.warn('⚠️ Ollama not available:', err.message);
-  }
+Tone: Professional, enthusiastic, authentic, and conversational${resumeContext}`;
 
-  // Fallback: Try GROQ API with current model
+  // Only try external APIs if configured (with 5-second timeout)
+
+  // Only try external APIs if configured (with 5-second timeout)
+  const apiTimeout = 5000; // 5 seconds max per API
+
+  // Try GROQ API if available
   if (process.env.GROQ_API_KEY) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), apiTimeout);
+
       const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
@@ -269,23 +343,28 @@ When answering questions:
           temperature: 0.7
         })
       });
+
+      clearTimeout(timeoutId);
+
       const j = await resp.json();
-      if (j?.error) {
-        console.error('GROQ error:', j.error.message);
-      } else {
-        const reply = j?.choices?.[0]?.message?.content || JSON.stringify(j);
+      if (j?.choices?.[0]?.message?.content) {
+        const reply = j.choices[0].message.content;
         return res.json({ reply });
       }
     } catch (err) {
-      console.error('GROQ error:', err.message);
+      console.warn('⚠️ GROQ timeout or error:', err.message);
     }
   }
 
-  // Fallback: Try OPENAI_API_KEY if GROQ fails
+  // Try OpenAI if GROQ isn't available or failed
   if (process.env.OPENAI_API_KEY) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), apiTimeout);
+
       const resp = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
@@ -296,22 +375,28 @@ When answering questions:
             { role: 'system', content: systemPrompt },
             { role: 'user', content: message }
           ],
-          max_tokens: 500
+          max_tokens: 500,
+          temperature: 0.7
         })
       });
+
+      clearTimeout(timeoutId);
+
       const j = await resp.json();
-      const reply = j?.choices?.[0]?.message?.content || JSON.stringify(j);
-      return res.json({ reply });
+      if (j?.choices?.[0]?.message?.content) {
+        const reply = j.choices[0].message.content;
+        return res.json({ reply });
+      }
     } catch (err) {
-      console.error('OpenAI error', err.message);
+      console.warn('⚠️ OpenAI timeout or error:', err.message);
     }
   }
 
-  // Try local answer
+  // Fallback: local keyword-based answer
   const local = localAnswer(message);
   if (local) return res.json({ reply: local });
 
-  return res.json({ reply: "Start Ollama (ollama serve) to enable local AI, or set OPENAI_API_KEY/GROQ_API_KEY for cloud APIs." });
+  return res.json({ reply: "I couldn't generate a response. Try asking about Jacinto's education, skills, certifications, or events." });
 });
 
 app.listen(port, () => console.log(`Server listening at http://localhost:${port}`));

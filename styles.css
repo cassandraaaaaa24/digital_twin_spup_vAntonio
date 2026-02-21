@@ -896,7 +896,8 @@ body {
 	word-break: break-word;
 	white-space: pre-wrap;
 	overflow-wrap: break-word;
-	transition: width 120ms linear, max-width 120ms linear, background 120ms linear;
+	transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+	backdrop-filter: blur(4px);
 }
 
 .msg.user {
@@ -963,28 +964,61 @@ body {
 	width: fit-content;
 	border: 1px solid var(--border);
 	box-shadow: var(--shadow-sm);
-	animation: messageSlideInLeft 0.3s ease-out;
+	animation: messageSlideInLeft 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.typing-spinner {
+	display: flex;
+	align-items: center;
+	gap: 5px;
 }
 
 .typing-dot {
-	width: 8px;
-	height: 8px;
+	width: 6px;
+	height: 6px;
 	border-radius: 50%;
 	background: var(--primary);
-	animation: blink 1.4s infinite;
+	animation: typingBounce 1.2s infinite;
+	display: inline-block;
+}
+
+.typing-dot:nth-child(1) {
+	animation-delay: 0s;
 }
 
 .typing-dot:nth-child(2) {
-	animation-delay: 0.2s;
+	animation-delay: 0.15s;
 }
 
 .typing-dot:nth-child(3) {
-	animation-delay: 0.4s;
+	animation-delay: 0.3s;
+}
+
+@keyframes typingBounce {
+	0%, 100% { 
+		opacity: 0.5;
+		transform: translateY(0);
+	}
+	50% { 
+		opacity: 1;
+		transform: translateY(-6px);
+	}
 }
 
 @keyframes blink {
 	0%, 60%, 100% { opacity: 0.3; }
 	30% { opacity: 1; }
+}
+
+@keyframes fadeOut {
+	0% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+	100% {
+		opacity: 0;
+		transform: translateY(-8px);
+	}
 }
 
 .chat-form {
@@ -1304,21 +1338,21 @@ body {
 
 /* Chat message animations */
 .msg {
-	animation: messageSlideIn 0.3s ease-out;
+	animation: messageSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .msg.user {
-	animation: messageSlideInRight 0.3s ease-out;
+	animation: messageSlideInRight 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .msg.bot {
-	animation: messageSlideInLeft 0.3s ease-out;
+	animation: messageSlideInLeft 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes messageSlideInLeft {
 	from {
 		opacity: 0;
-		transform: translateX(-20px);
+		transform: translateX(-12px);
 	}
 	to {
 		opacity: 1;
@@ -1329,7 +1363,7 @@ body {
 @keyframes messageSlideInRight {
 	from {
 		opacity: 0;
-		transform: translateX(20px);
+		transform: translateX(12px);
 	}
 	to {
 		opacity: 1;
@@ -1340,7 +1374,7 @@ body {
 @keyframes messageSlideIn {
 	from {
 		opacity: 0;
-		transform: translateY(10px);
+		transform: translateY(8px);
 	}
 	to {
 		opacity: 1;
