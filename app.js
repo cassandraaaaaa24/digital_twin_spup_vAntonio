@@ -205,17 +205,11 @@
         field2.innerHTML = `<span class="education-label">Date</span><div class="education-value">${ev.date}</div>`;
         
         const field3 = document.createElement('div'); field3.className = 'education-field';
-        if (ev.img) {
-          const img = document.createElement('img');
-          img.src = ev.img;
-          img.alt = ev.title;
-          img.style.width = '100%';
-          img.style.height = '140px';
-          img.style.objectFit = 'cover';
-          img.style.borderRadius = '8px';
-          img.style.marginTop = '4px';
-          field3.appendChild(img);
-        }
+        // Show the event description here instead of images for seminars/workshops
+        const descDiv = document.createElement('div');
+        descDiv.className = 'education-description';
+        descDiv.textContent = ev.desc || '';
+        field3.appendChild(descDiv);
         
         card.appendChild(header);
         card.appendChild(field1);
