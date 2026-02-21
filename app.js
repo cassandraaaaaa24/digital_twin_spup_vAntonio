@@ -1,4 +1,38 @@
 (() => {
+  // ── Dark Mode Toggle ──
+  function initTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+    updateThemeUI();
+  }
+
+  function updateThemeUI() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const icon = document.getElementById('themeIcon');
+    const label = document.getElementById('themeLabel');
+    if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+    if (label) label.textContent = isDark ? 'Light' : 'Dark';
+  }
+
+  function toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const newTheme = isDark ? 'light' : 'dark';
+    document.body.classList.add('theme-transitioning');
+    document.documentElement.setAttribute('data-theme', newTheme === 'light' ? '' : 'dark');
+    if (newTheme === 'light') document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', newTheme === 'light' ? '' : 'dark');
+    updateThemeUI();
+    setTimeout(() => document.body.classList.remove('theme-transitioning'), 350);
+  }
+
+  initTheme();
+  const themeToggleBtn = document.getElementById('themeToggle');
+  if (themeToggleBtn) themeToggleBtn.addEventListener('click', toggleTheme);
+
   // Initialize splash screen
   function initSplashScreen() {
     const splash = document.createElement('div');
