@@ -282,12 +282,6 @@ app.post('/api/chat', async (req, res) => {
   const { message } = req.body || {};
   if (!message) return res.status(400).json({ error: 'missing message' });
 
-  // Try fast local resume-based response FIRST (instant, no API wait)
-  const fastLocalResponse = smartResumeResponder(message);
-  if (fastLocalResponse) {
-    return res.json({ reply: fastLocalResponse });
-  }
-
   let resumeContext = '';
 
   // Search Upstash database for relevant resume information (if available)
@@ -308,7 +302,7 @@ app.post('/api/chat', async (req, res) => {
           .slice(0, 8);
         
         if (contextItems.length > 0) {
-          resumeContext = `\n\nDetailedd background: ${contextItems.slice(0, 3).join('; ')}`;
+          resumeContext = `\n\nRelevant context about me: ${contextItems.slice(0, 3).join('; ')}`;
         }
       }
     } catch (err) {
@@ -339,9 +333,6 @@ How I communicate:
 
 Tone: Professional, enthusiastic, authentic, and conversational${resumeContext}`;
 
-  // Only try external APIs if configured (with 5-second timeout)
-
-  // Only try external APIs if configured (with 5-second timeout)
   const apiTimeout = 5000; // 5 seconds max per API
 
   // Try GROQ API if available
@@ -416,11 +407,17 @@ Tone: Professional, enthusiastic, authentic, and conversational${resumeContext}`
     }
   }
 
-  // Fallback: local keyword-based answer
+  // Fallback 1: Use smart resume responder if all APIs failed
+  const smartResponse = smartResumeResponder(message);
+  if (smartResponse && !smartResponse.includes('Feel free to ask')) {
+    return res.json({ reply: smartResponse });
+  }
+
+  // Fallback 2: local keyword-based answer
   const local = localAnswer(message);
   if (local) return res.json({ reply: local });
 
-  return res.json({ reply: "I couldn't generate a response. Try asking about Jacinto's education, skills, certifications, or events." });
+  return res.json({ reply: "I couldn't generate a response. Try asking about my education, skills, certifications, projects, or events." });
 });
 
 // Serve stats page
