@@ -51,11 +51,11 @@ app.get('/', (req, res) => {
 function localAnswer(message){
   const resume = require('./data.js').resumeData;
   const s = message.toLowerCase();
-  if (/(birth|born|birthplace|birth date|birthday)/.test(s)) return `Jacinto was born on ${resume.personal.birthDate} in ${resume.personal.birthplace}! 🎂`;
-  if (/(email|e-mail|contact)/.test(s)) return `You can reach Jacinto at ${resume.personal.email}. He's also based in ${resume.personal.address}.`;
-  if (/(degree|studying|education|capstone)/.test(s)) return `Jacinto is pursuing a ${resume.education.degree} at ${resume.education.school} (${resume.education.years}). His capstone project is all about "${resume.education.capstone}" - pretty cool stuff! 🚀`;
-  if (/list certifications/.test(s)) return `Check out all of Jacinto's certifications:\n\n${resume.certifications.map((c, i) => `${i + 1}. ${c}`).join('\n')}`;
-  if (/list events/.test(s)) return `Jacinto has been to some amazing events and conferences:\n\n${resume.events.map(e=>`📍 ${e.title} — ${e.date}`).join('\n')}`;
+  if (/(birth|born|birthplace|birth date|birthday)/.test(s)) return `I was born on ${resume.personal.birthDate} in ${resume.personal.birthplace}.`;
+  if (/(email|e-mail|contact)/.test(s)) return `You can reach me at ${resume.personal.email}. I'm based in ${resume.personal.address}.`;
+  if (/(degree|studying|education|capstone)/.test(s)) return `I'm pursuing a ${resume.education.degree} at ${resume.education.school} (${resume.education.years}). My capstone project is "${resume.education.capstone}".`;
+  if (/list certifications/.test(s)) return `I have ${resume.certifications.length} certifications:\n\n${resume.certifications.map((c, i) => `${i + 1}. ${c.title} — ${c.org} (${c.date})`).join('\n')}`;
+  if (/list events/.test(s)) return `I've attended ${resume.events.length} events:\n\n${resume.events.map(e => `${e.title} at ${e.venue} (${e.date})`).join('\n')}`;
   return null;
 }
 
@@ -82,7 +82,8 @@ function getTextFromId(id) {
   }
   if (category === 'cert') {
     const index = parseInt(key);
-    if (resume.certifications[index]) return `Certification: ${resume.certifications[index]}`;
+    const cert = resume.certifications[index];
+    if (cert) return `Certification: ${cert.title} from ${cert.org} (${cert.date})`;
   }
   if (category === 'event') {
     const index = parseInt(key);
@@ -90,7 +91,8 @@ function getTextFromId(id) {
   }
   if (category === 'affiliation') {
     const index = parseInt(key);
-    if (resume.affiliations[index]) return `Affiliation: ${resume.affiliations[index]}`;
+    const aff = resume.affiliations[index];
+    if (aff) return `Affiliation: ${aff.role} at ${aff.organization} (${aff.period})`;
   }
   return null;
 }
@@ -213,69 +215,84 @@ function smartResumeResponder(message) {
   const resume = require('./data.js').resumeData;
   const q = message.toLowerCase();
 
-  // Check specific patterns for quick matches
   if (/(birth|born|birthday|age|when were you born)/.test(q)) {
-    return `I was born on ${resume.personal.birthDate} in ${resume.personal.birthplace}. It's a beautiful city in Cagayan.`;
+    return `I was born on ${resume.personal.birthDate} in ${resume.personal.birthplace}! 🎂`;
   }
   
   if (/(email|contact|reach|how can i contact|how to reach)/.test(q)) {
-    return `You can reach me at ${resume.personal.email}. I'm currently based in ${resume.personal.address}, Philippines.`;
+    return `Sure! You can reach me at ${resume.personal.email}. I'm based in ${resume.personal.address} 😊`;
+  }
+
+  if (/(gender)/.test(q)) {
+    return `I'm ${resume.personal.gender}!`;
+  }
+
+  if (/(citizen|nationality)/.test(q)) {
+    return `I'm ${resume.personal.citizenship}! 🇵🇭`;
+  }
+
+  if (/(religion|faith)/.test(q)) {
+    return `I'm ${resume.personal.religion}. ✝️`;
+  }
+
+  if (/(address|live|location|where are you|based)/.test(q)) {
+    return `I'm based in ${resume.personal.address}! It's home. 🏠`;
   }
   
   if (/(degree|education|school|studying|what are you studying|background|field)/.test(q)) {
-    const capstoneTitle = resume.education.capstone.split(':')[0].trim();
-    return `I'm pursuing a ${resume.education.degree} at ${resume.education.school}. Right now, I'm working on my capstone project called "${capstoneTitle}", which involves beacon technology and machine learning for item tracking. It's been an exciting journey combining different technologies I've learned.`;
+    return `I'm currently pursuing a ${resume.education.degree} at ${resume.education.school} (${resume.education.years}). My capstone project is "${resume.education.capstone}" — it's been a really interesting experience! Before this, I did Senior High at ${resume.education.shs.school} (${resume.education.shs.years}) and Junior High at ${resume.education.jhs.school} (${resume.education.jhs.years}).`;
+  }
+
+  if (/(capstone|project|thesis)/.test(q)) {
+    return `Oh, my capstone project is "${resume.education.capstone}"! It's a pretty cool project. 😄`;
   }
   
-  if (/(list certifications|all certifications|certifications you have)/.test(q)) {
-    const certs = resume.certifications.slice(0, 5).map(c => c.title).join(', ');
-    return `I've completed quite a few certifications focusing on AI, web development, and cybersecurity. Some of my recent ones include ${certs}, and several others. I'm always looking to expand my knowledge in emerging technologies like AI and automation.`;
+  if (/(list certif|all certif|certifications you have|how many cert)/.test(q)) {
+    const certs = resume.certifications.map(c => c.title).join('\n- ');
+    return `I've got ${resume.certifications.length} certifications so far! Here they are:\n- ${certs}`;
   }
   
   if (/(certif|training|credential|qualification|what certifications)/.test(q)) {
-    const cert = resume.certifications[0];
-    return `One of my recent certifications is "${cert.title}" from ${cert.org} in ${cert.date}. The course covered ${cert.desc}. I find it valuable to continuously learn and stay updated with industry standards.`;
+    const recentCerts = resume.certifications.slice(0, 3).map(c => `${c.title} from ${c.org} (${c.date})`).join('\n- ');
+    return `I've earned ${resume.certifications.length} certifications! Here are some recent ones:\n- ${recentCerts}`;
   }
   
-  if (/(event|conference|seminar|workshop|hackathon|what events|attended)/.test(q)) {
+  if (/(event|conference|seminar|workshop|what events|attended)/.test(q)) {
     if (/list|all|show/.test(q)) {
-      const eventList = resume.events.slice(0, 3).map(e => e.title).join(', ');
-      return `I've attended quite a few events and conferences. Some notable ones include ${eventList}, and others. I really value these opportunities to network, learn from industry experts, and apply my skills in real-world challenges like hackathons.`;
+      const events = resume.events.map(e => `${e.title} at ${e.venue} (${e.date})`).join('\n- ');
+      return `I've been to ${resume.events.length} events! Here's the full list:\n- ${events}`;
     }
-    const evt = resume.events[0];
-    return `I recently attended "${evt.title}" at ${evt.venue} in ${evt.date}. It was a great opportunity to ${evt.desc ? evt.desc.toLowerCase() : 'collaborate and learn with other developers'}. These kinds of events really help me grow both technically and professionally.`;
+    const recentEvents = resume.events.slice(0, 3).map(e => `${e.title} at ${e.venue} (${e.date})`).join('\n- ');
+    return `I've attended ${resume.events.length} events so far! Here are a few recent ones:\n- ${recentEvents}`;
   }
   
   if (/(skill|technical|programming|language|framework|technology|what can you code|what languages)/.test(q)) {
-    const langs = resume.skills?.programmingLanguages || [];
-    const frameworks = resume.skills?.frameworksLibraries || [];
-    const tech = resume.skills?.technicalITSkills || [];
-    
-    const langNames = langs.slice(0, 4).map(s => typeof s === 'string' ? s : s.lang || s.name || '').filter(Boolean).join(', ');
-    const frameworkNames = frameworks.slice(0, 3).map(s => typeof s === 'string' ? s : s.name || '').filter(Boolean).join(', ');
-    const techNames = tech.slice(0, 2).map(s => typeof s === 'string' ? s : s.skill || s.name || '').filter(Boolean).join(', ');
-    
-    return `I work with several programming languages including ${langNames || 'Python, JavaScript, and others'}. I'm experienced with frameworks like ${frameworkNames || 'React, Node.js, and more'}. I also have expertise in ${techNames || 'web development, system design, and problem-solving'}. I enjoy learning new technologies and applying them to solve real-world problems.`;
+    const langs = (resume.skills['Programming Languages'] || []).map(s => typeof s === 'object' ? `${s.lang} (${s.proficiency})` : s).filter(Boolean).join(', ');
+    const fws = (resume.skills['Frameworks & Libraries'] || []).map(s => typeof s === 'object' ? s.name : s).filter(Boolean).join(', ');
+    const tech = (resume.skills['Technical IT Skills'] || []).map(s => typeof s === 'object' ? s.skill : s).filter(Boolean).join(', ');
+    const dbs = (resume.skills['Databases'] || []).map(s => typeof s === 'object' ? s.system : s).filter(Boolean).join(', ');
+    let response = 'Here\'s what I work with! 💻';
+    if (langs) response += `\n\n🔤 Programming Languages: ${langs}`;
+    if (fws) response += `\n\n🧩 Frameworks & Libraries: ${fws}`;
+    if (dbs) response += `\n\n🗄️ Databases: ${dbs}`;
+    if (tech) response += `\n\n🔧 Technical IT Skills: ${tech}`;
+    return response;
   }
   
-  if (/(affiliation|member|organization|group|role|team|community|where do you work)/.test(q)) {
+  if (/(affiliation|member|organization|group|role|team|community)/.test(q)) {
     if (resume.affiliations && resume.affiliations.length > 0) {
-      const allAff = resume.affiliations.map(a => `${a.role} at ${a.organization}`).join(', ');
-      return `I'm involved with several organizations and communities. Currently, I serve as ${allAff}. These roles allow me to contribute to the tech community and collaborate with talented individuals on meaningful projects.`;
+      const allAff = resume.affiliations.map(a => `${a.role} at ${a.organization} (${a.period})`).join('\n- ');
+      return `I'm part of a few organizations! Here are my roles:\n- ${allAff}`;
     }
-    return `I'm actively involved in professional tech communities and organizations where I collaborate with other developers and contribute to various initiatives. These connections have been invaluable to my growth.`;
+    return `Hmm, I don't have affiliation info to share on that one!`;
   }
   
-  if (/(experience|background|tell me about yourself|who are you)/.test(q)) {
-    return `I'm an IT student at ${resume.education.school} passionate about technology, innovation, and artificial intelligence. I'm actively involved in tech communities, regularly attend hackathons and conferences, and have worked on several projects including my capstone project on beacon-based item tracking with AI. I believe in continuous learning and staying updated with emerging technologies.`;
-  }
-  
-  if (/(motivation|interest|why|passionate)/.test(q)) {
-    return `I'm motivated by solving real-world problems with technology. I enjoy the intersection of creativity and technical problem-solving, whether it's building applications, working with AI, or contributing to the developer community. The tech industry evolves so fast, and I'm genuinely excited to be part of that journey.`;
+  if (/(experience|tell me about yourself|who are you|introduce)/.test(q)) {
+    const affCount = resume.affiliations?.length || 0;
+    return `Hey! I'm ${resume.personal.name} 👋 I'm currently pursuing a ${resume.education.degree} at ${resume.education.school} (${resume.education.years}). My capstone project is "${resume.education.capstone}". So far I've earned ${resume.certifications.length} certifications, attended ${resume.events.length} events, and I hold ${affCount} organizational roles!`;
   }
 
-  // Default helpful response
-  return `Feel free to ask me about my education, technical skills, certifications, projects I've worked on, events I've attended, or anything else about my professional background. I'm happy to discuss!`;
+  return null;
 }
 
 app.post('/api/chat', async (req, res) => {
@@ -310,28 +327,52 @@ app.post('/api/chat', async (req, res) => {
     }
   }
 
-  const systemPrompt = `You are Jacinto Gabriel A. Tong. You are speaking about yourself in first person.
+  // Build factual context from actual resume data
+  const resume = require('./data.js').resumeData;
+  const certList = resume.certifications.slice(0, 5).map(c => c.title).join('; ');
+  const eventList = resume.events.slice(0, 5).map(e => `${e.title} (${e.date})`).join('; ');
+  const affList = resume.affiliations.map(a => `${a.role} at ${a.organization} (${a.period})`).join('; ');
+  const langs = (resume.skills['Programming Languages'] || []).map(s => typeof s === 'object' ? s.lang : s).filter(Boolean).join(', ');
+  const fws = (resume.skills['Frameworks & Libraries'] || []).map(s => typeof s === 'object' ? s.name : s).filter(Boolean).join(', ');
+  const techSkills = (resume.skills['Technical IT Skills'] || []).map(s => typeof s === 'object' ? s.skill : s).filter(Boolean).join(', ');
 
-About me:
-- I'm an IT student at St. Paul University Philippines pursuing a Bachelor of Science in Information Technology
-- My capstone project: "Beaconet" - using beacon technology, machine learning, and spatial indexing for real-time item tracking
-- I'm passionate about AI, automation, and solving real-world problems with technology
-- I actively participate in tech communities, hackathons, and conferences
-- I have certifications in AI Fundamentals (IBM), SvelteKit, cybersecurity, n8n automation, and others
-- I'm driven by continuous learning and staying updated with emerging technologies
+  const systemPrompt = `You are Tashanda Chealsy A. Antonio. You answer questions about yourself in first person using ONLY the facts below. NEVER invent, assume, or add information that is not listed here. If you don't have information about something, say "I don't have that information to share."
 
-How I communicate:
-- Always speak in first person - use "I", "me", "my"
-- Be conversational and natural, like talking to someone directly
-- Show genuine enthusiasm about my projects and achievements
-- Be professional but warm and approachable
-- Don't just list facts - weave them into natural conversation
-- When discussing my background, explain the context and why it matters to me
-- Keep responses thoughtful and engaging, not overly long
-- Let my passion for technology and learning come through
-- If asked something I don't have details about, admit it naturally
+Personal:
+- Name: ${resume.personal.name}
+- Birth Date: ${resume.personal.birthDate}
+- Birthplace: ${resume.personal.birthplace}
+- Gender: ${resume.personal.gender}
+- Citizenship: ${resume.personal.citizenship}
+- Religion: ${resume.personal.religion}
+- Address: ${resume.personal.address}
+- Email: ${resume.personal.email}
 
-Tone: Professional, enthusiastic, authentic, and conversational${resumeContext}`;
+Education:
+- Degree: ${resume.education.degree} at ${resume.education.school} (${resume.education.years})
+- Capstone: ${resume.education.capstone}
+- Senior High: ${resume.education.shs.school} (${resume.education.shs.years})
+- Junior High: ${resume.education.jhs.school} (${resume.education.jhs.years})
+
+Skills:
+- Programming Languages: ${langs}
+- Frameworks & Libraries: ${fws}
+- Technical IT Skills: ${techSkills}
+
+Certifications (${resume.certifications.length} total): ${certList}
+
+Events (${resume.events.length} total): ${eventList}
+
+Affiliations: ${affList}
+
+Rules:
+- Always speak in first person
+- Sound warm, friendly, and approachable — like chatting with a friend, not reading a resume
+- Use casual language, contractions, and light expressions (e.g. "Oh!", "honestly", "haha", "pretty cool")
+- ONLY state facts from the data above — you can phrase them casually but NEVER invent new information
+- Do NOT make up hobbies, interests, motivations, personality traits, or experiences not listed
+- If asked about something not in the data, just say something like "Hmm, I don't really have info on that one!"
+- Keep responses concise but personable${resumeContext}`;
 
   const apiTimeout = 5000; // 5 seconds max per API
 
@@ -355,7 +396,7 @@ Tone: Professional, enthusiastic, authentic, and conversational${resumeContext}`
             { role: 'user', content: message }
           ],
           max_tokens: 500,
-          temperature: 0.7
+          temperature: 0.5
         })
       });
 
@@ -391,7 +432,7 @@ Tone: Professional, enthusiastic, authentic, and conversational${resumeContext}`
             { role: 'user', content: message }
           ],
           max_tokens: 500,
-          temperature: 0.7
+          temperature: 0.3
         })
       });
 
@@ -409,7 +450,7 @@ Tone: Professional, enthusiastic, authentic, and conversational${resumeContext}`
 
   // Fallback 1: Use smart resume responder if all APIs failed
   const smartResponse = smartResumeResponder(message);
-  if (smartResponse && !smartResponse.includes('Feel free to ask')) {
+  if (smartResponse) {
     return res.json({ reply: smartResponse });
   }
 
@@ -417,7 +458,7 @@ Tone: Professional, enthusiastic, authentic, and conversational${resumeContext}`
   const local = localAnswer(message);
   if (local) return res.json({ reply: local });
 
-  return res.json({ reply: "I couldn't generate a response. Try asking about my education, skills, certifications, projects, or events." });
+  return res.json({ reply: "Hey! Feel free to ask me about my background, education, skills, certifications, events, or affiliations — I'd love to chat! 😊" });
 });
 
 // Serve stats page
