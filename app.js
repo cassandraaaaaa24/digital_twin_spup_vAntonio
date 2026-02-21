@@ -39,6 +39,7 @@
     { id: 'education', title: 'Educational Background' },
     { id: 'certs', title: 'Certifications' },
     { id: 'events', title: 'Seminars / Workshops / Conferences' },
+    { id: 'timeline', title: 'Timeline' },
     { id: 'skills', title: 'Skills' },
     { id: 'affiliations', title: 'Affiliations' }
   ];
@@ -67,6 +68,7 @@
       case 'certs': return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3 6 6 .5-4.5 4 1 6L12 16l-5.5 3.5 1-6L3 8.5 9 8 12 2z"/></svg>`;
       case 'events': return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM5 9h14v10H5V9z"/></svg>`;
       case 'skills': return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
+      case 'timeline': return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm-7 7H3v4c0 1.1.9 2 2 2h4v-2H5v-4zM5 5h4V3H5c-1.1 0-2 .9-2 2v4h2V5zm14-2h-4v2h4v4h2V5c0-1.1-.9-2-2-2zm0 16h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zM12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>`;
       case 'affiliations': return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm6 2h-2.47c-.45.34-.98.62-1.58.8L12 22l-2.95-5.18c-.6-.18-1.13-.46-1.58-.8H5c0 2.21 3.58 4 7 4s7-1.79 7-4z"/></svg>`;
       default: return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/></svg>`;
     }
@@ -217,6 +219,62 @@
         card.appendChild(field3);
         contentEl.appendChild(card);
       });
+    }
+    if (id === 'timeline') {
+      const h = document.createElement('h2'); h.className = 'section-title'; h.textContent = 'Timeline';
+      contentEl.appendChild(h);
+
+      // Combine certifications and events into one sorted timeline
+      const items = [];
+      (resume.certifications || []).forEach(c => {
+        items.push({ type: 'cert', title: c.title, subtitle: c.org, date: c.date, desc: c.desc || '' });
+      });
+      (resume.events || []).forEach(ev => {
+        items.push({ type: 'event', title: ev.title, subtitle: ev.venue, date: ev.date, desc: ev.desc || '' });
+      });
+
+      // Parse date for sorting (handle ranges like "March 26-28, 2025")
+      function parseTimelineDate(str) {
+        if (!str) return new Date(0);
+        const cleaned = str.replace(/(\w+)\s+\d+-\d+,/, '$1 1,'); // collapse ranges
+        const d = new Date(cleaned);
+        return isNaN(d.getTime()) ? new Date(0) : d;
+      }
+
+      items.sort((a, b) => parseTimelineDate(b.date) - parseTimelineDate(a.date));
+
+      const timeline = document.createElement('div'); timeline.className = 'timeline-container';
+      items.forEach((item, idx) => {
+        const row = document.createElement('div'); row.className = 'timeline-item';
+        row.style.animationDelay = (idx * 0.07) + 's';
+
+        const dot = document.createElement('div'); dot.className = 'timeline-dot ' + (item.type === 'cert' ? 'dot-cert' : 'dot-event');
+
+        const content = document.createElement('div'); content.className = 'timeline-content';
+
+        const badge = document.createElement('span');
+        badge.className = 'timeline-badge ' + (item.type === 'cert' ? 'badge-cert' : 'badge-event');
+        badge.textContent = item.type === 'cert' ? 'Certification' : 'Event';
+
+        const dateEl = document.createElement('span'); dateEl.className = 'timeline-date'; dateEl.textContent = item.date;
+
+        const titleEl = document.createElement('h3'); titleEl.className = 'timeline-title'; titleEl.textContent = item.title;
+
+        const subtitleEl = document.createElement('p'); subtitleEl.className = 'timeline-subtitle'; subtitleEl.textContent = item.subtitle;
+
+        const descEl = document.createElement('p'); descEl.className = 'timeline-desc'; descEl.textContent = item.desc;
+
+        content.appendChild(badge);
+        content.appendChild(dateEl);
+        content.appendChild(titleEl);
+        content.appendChild(subtitleEl);
+        if (item.desc) content.appendChild(descEl);
+
+        row.appendChild(dot);
+        row.appendChild(content);
+        timeline.appendChild(row);
+      });
+      contentEl.appendChild(timeline);
     }
     if (id === 'skills') {
       const h = document.createElement('h2'); h.className = 'section-title'; h.textContent = 'Skills';
