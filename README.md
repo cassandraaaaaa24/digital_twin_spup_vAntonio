@@ -1,4 +1,4 @@
-# Digital Twin Resume — Jacinto Gabriel A. Tong
+# Digital Twin Resume — Tashanda Chealsy A. Antonio
 
 An interactive, single-page web application that presents a professional resume with a tabbed interface, embedded profile card, and AI-powered chatbot for real-time resume inquiries.
 
@@ -232,7 +232,7 @@ For detailed deployment guidance, see [agents.md](agents.md#deployment--devops).
 
 ## License & Credits
 
-This digital twin resume was built for Jacinto Gabriel A. Tong as a professional portfolio platform. 
+This digital twin resume was built for Tashanda Chealsy A. Antonio as a professional portfolio platform. 
 
 **Technologies Used:**
 - Free tier: HTML5, CSS3, JavaScript, Node.js, Express.js
