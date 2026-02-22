@@ -437,6 +437,9 @@
         <div class="header">
             <h1>📊 Interview Statistics</h1>
             <p>Track your job interview compatibility scores</p>
+            <button id="sync-btn" class="action-button" style="margin-top: 15px; display: none; background: #ff9800; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;" onclick="syncInterviewsToServer()">
+                🔄 Sync to Server
+            </button>
         </div>
 
         <div id="stats-content">
@@ -597,8 +600,86 @@
             return distribution;
         }
 
+        // Function to sync unsynced interviews from localStorage to server
+        function checkAndShowSyncButton() {
+            try {
+                const stored = localStorage.getItem('interview_history');
+                if (stored) {
+                    const localInterviews = JSON.parse(stored);
+                    if (Array.isArray(localInterviews) && localInterviews.length > 0) {
+                        const syncBtn = document.getElementById('sync-btn');
+                        // Fetch current server data to compare
+                        fetch('/api/stats')
+                            .then(res => res.json())
+                            .then(data => {
+                                const serverIds = new Set((data.interviews || []).map(i => i.id));
+                                const unsyncedCount = localInterviews.filter(i => !serverIds.has(i.id)).length;
+                                
+                                if (unsyncedCount > 0) {
+                                    syncBtn.style.display = 'inline-block';
+                                    syncBtn.textContent = `🔄 Sync ${unsyncedCount} Interview(s) to Server`;
+                                }
+                            })
+                            .catch(err => console.warn('Could not check sync status:', err));
+                    }
+                }
+            } catch (error) {
+                console.warn('Error checking sync status:', error);
+            }
+        }
+
+        // Function to manually sync interviews from localStorage to server
+        async function syncInterviewsToServer() {
+            try {
+                const stored = localStorage.getItem('interview_history');
+                if (!stored) {
+                    alert('No interviews to sync');
+                    return;
+                }
+
+                const interviews = JSON.parse(stored);
+                if (!Array.isArray(interviews) || interviews.length === 0) {
+                    alert('No interviews to sync');
+                    return;
+                }
+
+                const syncBtn = document.getElementById('sync-btn');
+                const originalText = syncBtn.textContent;
+                syncBtn.textContent = '⏳ Syncing...';
+                syncBtn.disabled = true;
+
+                const response = await fetch('/api/sync-interviews', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interviews })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ Synced successfully!\n${result.addedCount} new record(s) added.\nTotal: ${result.totalRecords} interviews.`);
+                    syncBtn.style.display = 'none';
+                    syncBtn.textContent = originalText;
+                    syncBtn.disabled = false;
+                    // Reload stats
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    throw new Error(result.error || 'Sync failed');
+                }
+            } catch (error) {
+                console.error('Sync error:', error);
+                alert(`❌ Sync failed: ${error.message}`);
+                const syncBtn = document.getElementById('sync-btn');
+                syncBtn.disabled = false;
+                syncBtn.textContent = '🔄 Sync to Server';
+            }
+        }
+
         // Load stats on page load
-        window.addEventListener('load', loadStats);
+        window.addEventListener('load', () => {
+            loadStats();
+            checkAndShowSyncButton();
+        });
     </script>
 </body>
 </html>

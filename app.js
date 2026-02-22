@@ -962,108 +962,136 @@
     return parsed;
   }
 
-  function generateAnswerFromResume(question, jobDetails) {
+  function generateAnswerFromResume(question, jobDetails, questionNum = 1) {
     const qa = window.resumeData || {};
     const jobSkills = (jobDetails && jobDetails.skills) || [];
     const jobTitle = (jobDetails && jobDetails.title) || '';
+    const jobResponsibilities = (jobDetails && jobDetails.responsibilities) || [];
 
     const langs = (qa.skills?.['Programming Languages'] || []).map(s => typeof s === 'object' ? s.lang : s).filter(Boolean);
     const frameworks = (qa.skills?.['Frameworks & Libraries'] || []).map(s => typeof s === 'object' ? s.name : s).filter(Boolean);
     const techSkills = (qa.skills?.['Technical IT Skills'] || []).map(s => typeof s === 'object' ? s.skill : s).filter(Boolean);
     const certCount = qa.certifications?.length || 0;
-    const recentCerts = qa.certifications?.slice(0, 3).map(c => c.title) || [];
-    const affList = qa.affiliations?.map(a => `${a.role} at ${a.organization}`) || [];
-    const recentEvents = qa.events?.slice(0, 3).map(e => e.title) || [];
+    const recentCerts = qa.certifications?.slice(0, 3).map(c => typeof c === 'object' ? c.title : c) || [];
+    const affList = qa.affiliations?.length > 0 ? qa.affiliations.map(a => typeof a === 'object' ? `${a.role} at ${a.organization}` : a) : [];
+    const recentEvents = qa.events?.slice(0, 3).map(e => typeof e === 'object' ? e.title : e) || [];
 
-    // Experience with technologies
-    if (/(experience with|worked with|familiar with|proficiency|expertise in)/i.test(question)) {
-      return `So for programming, I work with ${langs.join(', ')}. I also use frameworks like ${frameworks.join(', ')}, and on the technical side I've got experience with ${techSkills.slice(0, 5).join(', ')}.`;
+    // QUESTION-SPECIFIC ANSWERS - Prioritize by question number/content
+    
+    // Q1: Technical experience/background
+    if (questionNum === 1 || /tell me about your experience|technical background|career|background/i.test(question)) {
+      const primarySkills = langs.slice(0, 3).join(', ') || 'various programming languages';
+      const secondarySkills = frameworks.slice(0, 2).join(', ') || 'modern frameworks';
+      return `My technical background includes ${primarySkills} for programming, and I work with ${secondarySkills} for application development. I've also developed expertise in ${techSkills.slice(0, 2).join(', ')}. Through my ${qa.education?.degree} at ${qa.education?.school}, plus ${certCount} certifications, I've built a solid foundation in software development.`;
     }
 
-    // Tell me about yourself
-    if (/(tell me about|background|experience|who are you)/i.test(question)) {
-      return `Hey! I'm ${qa.personal?.name}, and I'm pursuing a ${qa.education?.degree} at ${qa.education?.school} (${qa.education?.years}). Right now I'm working on my capstone — "${qa.education?.capstone}". I've picked up ${certCount} certifications along the way and attended ${qa.events?.length || 0} events. I'm also part of ${affList.slice(0, 2).join(' and ')}.`;
-    }
-
-    // Problem-solving
-    if (/(approach|solve|problem|challenge|difficult|handle)/i.test(question)) {
-      return `Honestly, my capstone project "${qa.education?.capstone}" taught me a lot — it involved integrating IoT and RFID, so there were plenty of challenges to work through! Events like ${recentEvents[0] || 'the workshops I\'ve attended'} also helped me get better at tackling problems step by step.`;
-    }
-
-    // Learning and growth
-    if (/(learn|training|growth|develop|improve|skill|certification)/i.test(question)) {
-      return `I've earned ${certCount} certifications so far, including ${recentCerts.slice(0, 2).join(' and ')}. I've also attended ${qa.events?.length || 0} events and workshops — they've been a great way to keep learning!`;
-    }
-
-    // Interest in role
-    if (/(interest|why|motivated|why this role|appeal)/i.test(question)) {
+    // Q2: Interest in role / Why this position
+    if (questionNum === 2 || /interested in|why this role|appeal|attracted to/i.test(question)) {
       const matchingSkills = jobSkills.filter(js => {
         const jsLower = js.toLowerCase();
-        return langs.some(l => l.toLowerCase().includes(jsLower) || jsLower.includes(l.toLowerCase())) ||
-               frameworks.some(f => f.toLowerCase().includes(jsLower) || jsLower.includes(f.toLowerCase()));
-      });
+        return langs.concat(frameworks).some(skill => 
+          skill.toLowerCase().includes(jsLower) || jsLower.includes(skill.toLowerCase())
+        );
+      }).slice(0, 2);
+      
       if (matchingSkills.length > 0) {
-        return `I think my skills in ${matchingSkills.join(', ')} line up well with this ${jobTitle} role! I'm pursuing a ${qa.education?.degree} and have ${certCount} certifications backing me up.`;
+        return `I'm genuinely interested in this ${jobTitle} role because it aligns perfectly with my skill set. I have direct experience with ${matchingSkills.join(' and ')}, which are core to this position. Beyond the technical fit, I'm excited about ${jobResponsibilities[0]?.toLowerCase() || 'the growth opportunities'} that this role offers, and I believe my ${qa.education?.degree} background combined with my ${certCount} certifications demonstrates my commitment to excellence.`;
       }
-      return `My ${qa.education?.degree} studies and ${certCount} certifications give me a solid foundation for this role. Plus, my involvement with ${affList.slice(0, 1).join('')} keeps me connected to the tech community!`;
+      return `What appeals to me about this ${jobTitle} position is the opportunity to apply my ${qa.education?.degree} background and develop new skills. I'm particularly drawn to the responsibility of ${jobResponsibilities[0]?.toLowerCase() || 'driving technical solutions'}. My involvement in ${affList.slice(0, 1).join('and')} has shown me the value of continuous learning, which I see reflected in this role.`;
     }
 
-    // Project experience
-    if (/(project|built|created|developed|worked on)/i.test(question)) {
-      return `My biggest project so far is my capstone: "${qa.education?.capstone}" — it's been quite the learning experience! I've also been involved in events like ${recentEvents.join(', ')}.`;
+    // Q3: Learning approach / How you stay current
+    if (questionNum === 3 || /approach to learning|stay updated|continuous learning|learning strategies/i.test(question)) {
+      const topCerts = recentCerts.slice(0, 2).join(', ') || 'industry certifications';
+      return `I approach learning as a continuous journey. I've earned ${certCount} certifications so far, including ${topCerts}, which shows my commitment to staying current with technology trends. I also attend workshops and ${qa.events?.length || 0} tech events to stay engaged with the community. Beyond formal certifications, I contribute to projects like my capstone "${qa.education?.capstone}", where I learn by doing and solving real-world problems on a daily basis.`;
     }
 
-    // Experience level
-    if (/(senior|junior|level|years|fresh|early career)/i.test(question)) {
-      return `I'm currently a student pursuing my ${qa.education?.degree} at ${qa.education?.school} (${qa.education?.years}). I've got ${certCount} certifications and ${affList.length} organizational roles under my belt!`;
+    // Q4: Technical skills / Tech stack proficiency
+    if (questionNum === 4 || /experience with|technology stack|technical skills|familiar with/i.test(question)) {
+      const allSkills = langs.concat(frameworks).concat(techSkills).filter(Boolean).slice(0, 5).join(', ');
+      return `I have hands-on experience with ${allSkills}. Throughout my studies and ${certCount} certifications, I've developed practical skills in both front-end and back-end development. My capstone project "${qa.education?.capstone}" gave me deep exposure to integrating various technologies. I'm confident with the core stack you've mentioned, and I have the foundation to quickly pick up any additional tools your team uses.`;
     }
 
-    // Teamwork and collaboration
-    if (/(team|collaborate|work with|communicate|community)/i.test(question)) {
-      return `I'm involved in ${affList.join(', ')} — so I get to collaborate with some great people in the IT community!`;
+    // Q5: Overall fit / Why you're the right candidate
+    if (questionNum === 5 || /overall fit|why you|best suited|why should we|why you're right/i.test(question)) {
+      return `I believe I'm the right fit for this role for several reasons. One, my technical foundation in ${langs.slice(0, 2).join(' and ')} aligns well with your team's needs. Two, my involvement with ${affList.slice(0, 1).join('')} demonstrates that I collaborate well and stay connected to industry best practices. Three, my ${certCount} certifications show I'm proactive about professional development. And finally, working on my capstone "${qa.education?.capstone}" has given me real problem-solving experience that translates directly to ${jobResponsibilities[0]?.toLowerCase() || 'driving solutions'}. I'm ready to contribute from day one and grow with your team.`;
     }
 
-    // Skill gaps
-    if (/(don't have|lack|gap|weak|unfamiliar|new to|haven't used)/i.test(question)) {
-      return `Right now my skills include ${langs.slice(0, 3).join(', ')} and ${frameworks.join(', ')}. I've earned ${certCount} certifications, so I'm definitely used to picking up new things!`;
-    }
-
-    // Fallback
-    return `I'm ${qa.personal?.name}, a ${qa.education?.degree} student at ${qa.education?.school}. I work with ${langs.slice(0, 3).join(', ')}, have ${certCount} certifications, and I'm part of ${affList.slice(0, 1).join('')}!`;
+    // Fallback for unexpected questions
+    return `I'm ${qa.personal?.name}, a ${qa.education?.degree} student at ${qa.education?.school}. I'm proficient in ${langs.slice(0, 3).join(', ')}, have earned ${certCount} certifications, and I've gained practical experience through projects and community involvement. I'm excited about this opportunity and confident I can add value to your team.`;
   }
 
-  function calculatePerQuestionScore(jobDetails, questionNum) {
+  function calculatePerQuestionScore(jobDetails, questionNum, answer = '') {
     try {
       // Get comprehensive match data from actual resume
-      const skillScore = evaluateSkillMatch(jobDetails);
-      const levelScore = calculateLevelAlignment(getResumeExperienceLevel(), getJobExperienceLevel(jobDetails)) * 100;
-      const certScore = evaluateCertificateRelevance(jobDetails) * 100;
-      const projectScore = evaluateProjectExperience(jobDetails) * 100;
-      const educationScore = evaluateEducationMatch(jobDetails) * 100;
+      let skillScore = 0;
+      let levelScore = 0;
+      let certScore = 0;
+      let projectScore = 0;
+      let educationScore = 0;
+      
+      try {
+        skillScore = evaluateSkillMatch(jobDetails);
+      } catch (e) {
+        console.warn('Error evaluating skill match:', e);
+        skillScore = 50;
+      }
+      
+      try {
+        levelScore = calculateLevelAlignment(getResumeExperienceLevel(), getJobExperienceLevel(jobDetails)) * 100;
+      } catch (e) {
+        console.warn('Error calculating level alignment:', e);
+        levelScore = 50;
+      }
+      
+      try {
+        certScore = evaluateCertificateRelevance(jobDetails) * 100;
+      } catch (e) {
+        console.warn('Error evaluating certifications:', e);
+        certScore = 50;
+      }
+      
+      try {
+        projectScore = evaluateProjectExperience(jobDetails) * 100;
+      } catch (e) {
+        console.warn('Error evaluating projects:', e);
+        projectScore = 50;
+      }
+      
+      try {
+        educationScore = evaluateEducationMatch(jobDetails) * 100;
+      } catch (e) {
+        console.warn('Error evaluating education:', e);
+        educationScore = 50;
+      }
+      
+      // Evaluate answer quality if provided
+      const answerQualityScore = answer ? evaluateAnswerQuality(answer, jobDetails, questionNum) : 70;
       
       let baseScore = 0;
       
       // Distribute scores across questions based on resume strength in each area
+      // Now also incorporating answer quality
       switch(questionNum) {
         case 1: 
-          // Q1: Technical background - weighted heavily on skill match + education
-          baseScore = (skillScore * 0.5) + (educationScore * 0.3) + (certScore * 0.2);
+          // Q1: Technical background - weighted on skill match + education + answer quality
+          baseScore = (skillScore * 0.35) + (educationScore * 0.25) + (certScore * 0.15) + (answerQualityScore * 0.25);
           break;
         case 2: 
-          // Q2: Interest in role - focus on project experience and motivation alignment
-          baseScore = (projectScore * 0.4) + (skillScore * 0.35) + (certScore * 0.25);
+          // Q2: Interest in role - focus on project experience + answer quality
+          baseScore = (projectScore * 0.3) + (skillScore * 0.25) + (certScore * 0.15) + (answerQualityScore * 0.3);
           break;
         case 3: 
-          // Q3: Learning approach - focus on certifications + demonstrated learning (projects)
-          baseScore = (certScore * 0.6) + (projectScore * 0.25) + (skillScore * 0.15);
+          // Q3: Learning approach - focus on certifications + projects + answer quality
+          baseScore = (certScore * 0.35) + (projectScore * 0.2) + (skillScore * 0.1) + (answerQualityScore * 0.35);
           break;
         case 4: 
-          // Q4: Experience with tech stack - focus on skills + certifications
-          baseScore = (skillScore * 0.65) + (certScore * 0.25) + (levelScore * 0.1);
+          // Q4: Experience with tech stack - focus on skills + answer quality
+          baseScore = (skillScore * 0.4) + (certScore * 0.15) + (levelScore * 0.1) + (answerQualityScore * 0.35);
           break;
         case 5: 
-          // Q5: Overall fit - weighted average of all factors for holistic assessment
-          baseScore = (skillScore * 0.3) + (levelScore * 0.25) + (projectScore * 0.2) + (certScore * 0.15) + (educationScore * 0.1);
+          // Q5: Overall fit - balanced holistic assessment with answer quality
+          baseScore = (skillScore * 0.2) + (levelScore * 0.15) + (projectScore * 0.15) + (certScore * 0.1) + (educationScore * 0.1) + (answerQualityScore * 0.3);
           break;
       }
       
@@ -1071,17 +1099,122 @@
       const experienceMultiplier = getResumeExperienceLevel() === 1 ? 0.85 : 1.0;
       let finalScore = baseScore * experienceMultiplier;
       
-      // Add small random variance (±5%) to avoid too-perfect scores
-      const variance = (Math.random() * 10) - 5;
+      // Add small random variance (±3%) for realism
+      const variance = (Math.random() * 6) - 3;
       finalScore += variance;
       
-      // Return score between 35-90 for realistic range (unlikely to be 90+ without more experience)
+      // Return score between 35-90 for realistic range
       const minScore = getResumeExperienceLevel() === 1 ? 35 : 40;
       const maxScore = currentMatchScore >= 70 ? 88 : 82;
       return Math.min(Math.max(Math.round(finalScore), minScore), maxScore);
     } catch (error) {
-      console.error('Error calculating question score:', error);
-      return 60;
+      console.error('Critical error calculating question score:', error);
+      // Return reasonable default based on match score instead of hardcoded 60
+      return currentMatchScore >= 70 ? 72 : currentMatchScore >= 50 ? 60 : 48;
+    }
+  }
+
+  function evaluateAnswerQuality(answer, jobDetails, questionNum) {
+    try {
+      if (!answer || answer.length < 10) {
+        return 35; // Very short answers score low
+      }
+
+      let qualityScore = 50; // Base score
+
+      // Factor 1: Answer length (shows effort and detail)
+      // 50-100 chars: +5, 100-200 chars: +10, 200+ chars: +15
+      if (answer.length > 200) qualityScore += 15;
+      else if (answer.length > 100) qualityScore += 10;
+      else if (answer.length > 50) qualityScore += 5;
+
+      // Factor 2: Specific keywords and technical terminology
+      const jobKeywords = [];
+      if (jobDetails.skills && Array.isArray(jobDetails.skills)) {
+        jobDetails.skills.forEach(skill => jobKeywords.push(skill.toLowerCase()));
+      }
+      if (jobDetails.responsibilities && Array.isArray(jobDetails.responsibilities)) {
+        jobDetails.responsibilities.forEach(resp => {
+          resp.split(' ').forEach(word => {
+            if (word.length > 4) jobKeywords.push(word.toLowerCase());
+          });
+        });
+      }
+
+      const answerLower = answer.toLowerCase();
+      let keywordMatches = 0;
+      jobKeywords.forEach(keyword => {
+        if (answerLower.includes(keyword)) {
+          keywordMatches++;
+        }
+      });
+
+      // +2 points per matching keyword (max +20)
+      qualityScore += Math.min(keywordMatches * 2, 20);
+
+      // Factor 3: Specific technical terms that show competence
+      const techTerms = [
+        'project', 'experience', 'developed', 'implemented', 'designed', 'built',
+        'learned', 'github', 'agile', 'team', 'collaborated', 'problem', 'solution',
+        'performance', 'tested', 'debugged', 'optimized', 'architecture', 'api',
+        'database', 'deployment', 'framework', 'library', 'algorithm'
+      ];
+      
+      let techMatches = 0;
+      techTerms.forEach(term => {
+        if (answerLower.includes(term)) {
+          techMatches++;
+        }
+      });
+
+      // +1 point per technical term (max +15)
+      qualityScore += Math.min(techMatches, 15);
+
+      // Factor 4: Evidence of concrete examples and specificity
+      // Look for indicators like specific project names, technologies, metrics
+      const hasNumbers = /\d+/.test(answer);
+      const hasQuotes = /["']/.test(answer);
+      const hasTechnologies = /[A-Z][a-z]+(?:\b|Kit|Script|Script|JS|Hub|Flow)/.test(answer);
+      
+      if (hasNumbers) qualityScore += 8;
+      if (hasTechnologies) qualityScore += 7;
+      if (hasQuotes) qualityScore += 5;
+
+      // Factor 5: Answer coherence for specific question types
+      switch (questionNum) {
+        case 1: // Technical background - should mention skills/projects
+          if (answerLower.includes('skill') || answerLower.includes('work') || answerLower.includes('project')) {
+            qualityScore += 10;
+          }
+          break;
+        case 2: // Interest in role - should show genuine interest
+          if (answerLower.includes('interest') || answerLower.includes('excit') || answerLower.includes('grow')) {
+            qualityScore += 10;
+          }
+          break;
+        case 3: // Learning - should mention learning approaches
+          if (answerLower.includes('learn') || answerLower.includes('cours') || answerLower.includes('practice')) {
+            qualityScore += 10;
+          }
+          break;
+        case 4: // Tech stack - should mention specific technologies
+          if (answerLower.includes('language') || answerLower.includes('framework') || answerLower.includes('tool')) {
+            qualityScore += 10;
+          }
+          break;
+        case 5: // Overall fit - should tie together multiple aspects
+          if ((answerLower.includes('skill') || answerLower.includes('experience')) && 
+              (answerLower.includes('team') || answerLower.includes('collaborat'))) {
+            qualityScore += 10;
+          }
+          break;
+      }
+
+      // Cap score at 95 to leave room for perfect responses
+      return Math.min(Math.max(qualityScore, 25), 95);
+    } catch (error) {
+      console.warn('Error evaluating answer quality:', error);
+      return 60; // Default reasonable score on error
     }
   }
 
@@ -1199,8 +1332,8 @@
       
       setTimeout(() => {
         // Generate answer from resume data
-        const answer = generateAnswerFromResume(question, jobDetails);
-        const qScore = calculatePerQuestionScore(jobDetails, questionNum);
+        const answer = generateAnswerFromResume(question, jobDetails, questionNum);
+        const qScore = calculatePerQuestionScore(jobDetails, questionNum, answer);
         questionScores.push(qScore);
         
         const aMsg = createExpandableMsg(answer, 'user', 140);
@@ -1245,11 +1378,17 @@
   function displayQuestionWithStandardFlow(jobDetails, questionNum) {
     showTyping(false);
     
+    // Ensure we have a valid match score
+    if (typeof currentMatchScore !== 'number' || currentMatchScore === null) {
+      currentMatchScore = 60; // Default fallback
+    }
+    
     const skillName = jobDetails.skills && jobDetails.skills.length > 0 ? jobDetails.skills[0] : 'the required tech stack';
     const respName = jobDetails.responsibilities && jobDetails.responsibilities.length > 0 ? jobDetails.responsibilities[0]?.toLowerCase() : 'solve a complex technical problem';
     
     let questions = [];
     
+    // Question sets based on match score
     if (currentMatchScore >= 70) {
       questions = [
         `Tell me about your experience with ${skillName}. How have you applied it in real projects?`,
@@ -1278,6 +1417,12 @@
     
     const question = questions[questionNum - 1];
     
+    // Fallback if question index is out of bounds
+    if (!question) {
+      displayInterviewSummary();
+      return;
+    }
+    
     setTimeout(async () => {
       const qMsg = document.createElement('div');
       qMsg.className = 'msg bot';
@@ -1286,8 +1431,8 @@
       chatLog.scrollTop = chatLog.scrollHeight;
       
       setTimeout(() => {
-        const answer = generateAnswerFromResume(question, jobDetails);
-        const qScore = calculatePerQuestionScore(jobDetails, questionNum);
+        const answer = generateAnswerFromResume(question, jobDetails, questionNum);
+        const qScore = calculatePerQuestionScore(jobDetails, questionNum, answer);
         questionScores.push(qScore);
         
         const aMsg = createExpandableMsg(answer, 'user', 140);
@@ -1377,17 +1522,103 @@
 
       // Save back to localStorage
       localStorage.setItem('interview_history', JSON.stringify(interviews));
-      console.log('✅ Interview result saved:', interviewRecord);
+      console.log('✅ Interview result saved to localStorage:', interviewRecord);
 
-      // Send to server for backup
-      fetch('/api/interview-result', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(interviewRecord)
-      }).catch(err => console.warn('Could not backup interview result:', err));
+      // Send to server for persistent backup
+      sendInterviewToServer(interviewRecord);
     } catch (error) {
       console.error('Error saving interview result:', error);
     }
+  }
+
+  function sendInterviewToServer(interviewRecord) {
+    // Attempt to send to server
+    fetch('/api/interview-result', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(interviewRecord)
+    })
+    .then(res => {
+      if (!res.ok) {
+        console.warn(`⚠️ Server responded with status ${res.status}`);
+        throw new Error(`Server returned ${res.status}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      console.log('✅ Interview result backed up to server:', data);
+    })
+    .catch(err => {
+      console.warn('⚠️ Failed to backup interview to server:', err.message);
+      console.warn('Will attempt background sync...');
+      // Schedule a retry with exponential backoff
+      scheduleInterviewSync();
+    });
+  }
+
+  let syncScheduled = false;
+  let syncRetries = 0;
+  const MAX_SYNC_RETRIES = 3;
+
+  function scheduleInterviewSync() {
+    if (syncScheduled || syncRetries >= MAX_SYNC_RETRIES) return;
+    
+    syncScheduled = true;
+    syncRetries++;
+    
+    // Retry after 2 seconds
+    setTimeout(() => {
+      attemptInterviewSync();
+    }, 2000 * syncRetries);
+  }
+
+  function attemptInterviewSync() {
+    try {
+      const stored = localStorage.getItem('interview_history');
+      if (!stored) {
+        syncScheduled = false;
+        return;
+      }
+
+      const interviews = JSON.parse(stored);
+      if (!Array.isArray(interviews) || interviews.length === 0) {
+        syncScheduled = false;
+        return;
+      }
+
+      // Send all interviews to sync endpoint
+      fetch('/api/sync-interviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interviews })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          console.log(`✅ Synced ${data.addedCount} interview records to server`);
+          syncScheduled = false;
+          syncRetries = 0;
+        }
+      })
+      .catch(err => {
+        console.warn('Sync attempt failed:', err.message);
+        syncScheduled = false;
+        // Could retry again if needed
+      });
+    } catch (error) {
+      console.error('Error during sync attempt:', error);
+      syncScheduled = false;
+    }
+  }
+
+  // Auto-sync on page visibility change (when user returns to tab)
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && syncRetries > 0) {
+        console.log('Page became visible, attempting sync...');
+        attemptInterviewSync();
+      }
+    });
   }
 
   function getInterviewHistory() {

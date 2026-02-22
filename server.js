@@ -556,6 +556,44 @@ app.post('/api/interview-result', (req, res) => {
   }
 });
 
+// API endpoint to sync interview history from browser localStorage to server file
+app.post('/api/sync-interviews', (req, res) => {
+  const { interviews } = req.body;
+  
+  if (!Array.isArray(interviews)) {
+    return res.status(400).json({ error: 'interviews must be an array' });
+  }
+
+  try {
+    // Merge with existing file data to avoid losing anything
+    const fileData = loadInterviewHistory();
+    const fileIds = new Set(fileData.map(i => i.id));
+    
+    // Add any interviews from the request that aren't already in the file
+    let addedCount = 0;
+    interviews.forEach(interview => {
+      if (!fileIds.has(interview.id)) {
+        fileData.push(interview);
+        addedCount++;
+      }
+    });
+
+    // Save merged data back to file
+    saveInterviewHistory(fileData);
+
+    res.json({
+      success: true,
+      message: `Synced ${addedCount} new interview records`,
+      totalRecords: fileData.length,
+      addedCount,
+      interviews: fileData
+    });
+  } catch (error) {
+    console.error('Error syncing interviews:', error);
+    res.status(500).json({ error: 'Failed to sync interviews' });
+  }
+});
+
 // API endpoint to generate custom job interview questions
 app.post('/api/generate-custom-questions', async (req, res) => {
   const { jobTitle, skills, responsibilities } = req.body;
